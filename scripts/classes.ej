@@ -1,0 +1,21 @@
+/// John my man
+class Test : [A, B] {
+    fn __new__(self, v1, v2) {
+
+    }
+
+    fn __add__(self, other) {
+
+    }
+
+    fn __mul__(self, other)
+
+    fn update(delta) {
+
+    }
+}
+
+x = new Test(1,2)
+x.update(102.0)
+
+x = x + new Test(1,2)

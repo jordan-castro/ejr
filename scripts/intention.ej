@@ -1,0 +1,33 @@
+import "std"
+import "random"
+
+results = []
+
+@print("Started, press Ctrl+C to stop");
+
+@const(interval, setInterval(fn() {
+  choice = @random_number(0, 1)
+  results.push(choice)
+}, 10))
+
+// Handle Ctrl+C (SIGINT)
+Deno.addSignalListener("SIGINT", fn () {
+  clearInterval(interval) // stop the loop
+  @print("\nKeyboardInterrupt caught!");
+
+  zeros = results.filter(fn (x) { return x == 0 }).length
+  ones = results.filter(fn (x) {return x == 1 }).length
+
+  @print("Number of zeros: $zeros")
+  @print("Number of ones: $ones")
+
+  if zeros > ones {
+    @print("Zeros win")
+  } elif ones > zeros {
+    @print("Ones win")
+  } else {
+    @print("It's a tie!")
+  }
+
+  Deno.exit(0)
+})

@@ -1,0 +1,49 @@
+// Property of EpochTech
+// author: Jordan Castro
+// email: jordan@grupojvm.com
+
+// Download the correct files from https://github.com/bellard/quickjs
+// and place them in lib/
+
+files = [
+    // VM
+    "quickjs.c",
+    "quickjs.h",
+    // Utils required by the VM
+    "cutils.c",
+    "cutils.h",
+    // String helpers
+    "libregexp.c",
+    "libregexp.h",
+    "libregexp-opcode.h",
+    // RegExp engine implementation.
+    "libunicode.c",
+    "libunicode.h", 
+    "libunicode-table.h",
+    // Unicode tables and helpers for RegExp, string normalization
+    "dtoa.c",
+    "dtoa.h",
+    // Double → string conversion and back (printing/parsing floating point numbers).
+    "list.h",
+    // Simple linked-list macros used throughout.
+    "quickjs-atom.h",
+    "quickjs-opcode.h"
+]
+// https://raw.githubusercontent.com/bellard/quickjs/refs/heads/master/file
+
+async fn save_file(file_name, contents) {
+    path = "lib/$file_name"
+    await Deno.writeTextFile(path, contents)
+}
+
+async fn download_file(file) {
+    url = "https://raw.githubusercontent.com/bellard/quickjs/refs/heads/master/$file"
+    contents = await fetch(url)
+    contents = await contents.text()
+    // Save file
+    await save_file(file, contents)
+}
+
+for file in files {
+    await download_file(file)
+}
