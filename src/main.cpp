@@ -9,6 +9,7 @@ using namespace ejr;
 class Person {
     public:
         string name;
+
         Person(vector<JSArg> args) {
             name = jsarg_as<std::string>(args[0]);
         }
@@ -44,30 +45,32 @@ int main() {
             }
         }
 
-        p = new JSPerson("Test");
+        globalThis.jsp = new JSPerson("Test");
     )", "test.js");
 
-    // Register class
-    easyjsr->register_class<Person>("Person", {
-        {
-            "print_name", 
-            [](const vector<JSArg> args) -> JSArg {
-                // Get ptr from first arg
-                auto p = get_obj_from_ptr<Person>(args[0]);
-                return p->print_name(args);
-            }
-        }
-    });
+    // TODO: Optionally Register C++ classes (This is for when you are using the library in a C++ project.)
+    // easyjsr->register_class<Person>("Person", {
+    //     {
+    //         "print_name", 
+    //         [](const vector<JSArg> args) -> JSArg {
+    //             cout << "Calling from print_name" << endl;
+    //             // Get ptr from first arg
+    //             auto p = get_obj_from_ptr<Person>(args[0]);
+    //             return p->print_name(args);
+    //         }
+    //     }
+    // });
+    // For all other projects use full callbacks. JS should not touch your C++ classes.
 
-    // cout << "Result: " << easyjsr->val_to_string(val) << endl;
-    JSValue testResult = easyjsr->eval_function("return_string", vector<JSArg>{10,2});
-    cout << "Result: " << easyjsr->val_to_string(testResult) << endl;
+    // // cout << "Result: " << easyjsr->val_to_string(val) << endl;
+    // JSValue testResult = easyjsr->eval_function("return_string", vector<JSArg>{10,2});
+    // cout << "Result: " << easyjsr->val_to_string(testResult) << endl;
 
-    JSValue p = easyjsr->get_from_global("p");
-    // Call .print_name()
-    JSValue print_name = easyjsr->eval_class_function(p, "print_name", vector<JSArg>{});
-    cout << "Result: " << easyjsr->val_to_string(print_name) << endl;
-    easyjsr->free_jsval(p);
+    // JSValue p = easyjsr->get_from_global("jsp");
+    // // Call .print_name()
+    // JSValue print_name = easyjsr->eval_class_function(p, "print_name", vector<JSArg>{});
+    // cout << "Result: " << easyjsr->val_to_string(print_name) << endl;
+    // easyjsr->free_jsval(p);
 
     // Register callback
     easyjsr->register_callback("___print", ___print);
@@ -91,14 +94,6 @@ int main() {
         
         easyjsr_test();
     )", "test2.js");
-    easyjsr->free_jsval(val);
-
-    // Evaluate
-    val = easyjsr->run_script(R"(
-        let p = new Person("Jordan");
-        p.print_name();
-    )", "test3.js");
-
     easyjsr->free_jsval(val);
 
     return 0;

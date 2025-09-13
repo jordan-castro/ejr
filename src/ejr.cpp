@@ -4,6 +4,7 @@
 
 using namespace ejr;
 using namespace std;
+
 JSValue ejr::__to_js(JSContext *ctx, const _JSArg &arg)
 {
     return std::visit([&](auto &&value) -> JSValue
@@ -45,6 +46,8 @@ JSValue ejr::to_js(JSContext *ctx, const JSArg &args)
             return arr;
         } else if constexpr (std::is_same_v<T, _JSArg>) {
             return __to_js(ctx, value);
+        } else {
+            return js_undefined();
         } }, args);
 }
 
@@ -149,7 +152,7 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
 }
 
 EasyJSR::EasyJSR()
-{
+{ 
     this->runtime = JS_NewRuntime();
     if (!this->runtime)
     {
@@ -160,7 +163,7 @@ EasyJSR::EasyJSR()
     this->ctx = JS_NewContext(this->runtime);
 
     // Create a POINTER of this object
-    this->js_ptr = js_mkptr(JS_TAG_OBJECT, this);
+    // this->js_ptr = js_mkptr(JS_TAG_OBJECT, this);
 }
 
 EasyJSR::~EasyJSR()
@@ -168,6 +171,8 @@ EasyJSR::~EasyJSR()
     // Free context first.
     if (this->ctx)
     {
+        this->callbacks.clear();
+
         JS_FreeContext(this->ctx);
         this->ctx = nullptr;
     }
@@ -177,6 +182,7 @@ EasyJSR::~EasyJSR()
         JS_FreeRuntime(this->runtime);
         this->runtime = nullptr;
     }
+
 }
 
 JSValue EasyJSR::run_script(const string &js_script, const string &file_name)
@@ -273,7 +279,10 @@ void EasyJSR::register_callback(const string &fn_name, DynCallback callback)
     // Create JS function bound to callback
     auto trampoline = [](JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data) -> JSValue
     {
-        EasyJSR *self = reinterpret_cast<EasyJSR *>(JS_VALUE_GET_PTR(func_data[0]));
+        int64_t address_int64;
+        JS_ToBigInt64(ctx, &address_int64, func_data[0]);
+        uintptr_t address = static_cast<uintptr_t>(address_int64);
+        EasyJSR *self = reinterpret_cast<EasyJSR*>(address);
 
         // Convert JS args -> std::vector<JSArg>
         std::vector<JSArg> cpp_args;
@@ -304,15 +313,12 @@ void EasyJSR::register_callback(const string &fn_name, DynCallback callback)
     JSValue global = JS_GetGlobalObject(this->ctx);
 
     JSValue func_data[2];
-    func_data[0] = this->js_ptr;
+    uintptr_t address = reinterpret_cast<uintptr_t>(this);
+    int64_t address_int64 = static_cast<int64_t>(address);
+    func_data[0] = JS_NewBigInt64(this->ctx, address_int64);
     func_data[1] = JS_NewString(this->ctx, fn_name.c_str());
-    // func_data[1] = js_mkptr(JS_TAG_OBJECT, &this->callbacks[fn_name]);
-    // func_data[0] = JS_NewBigInt64(this->ctx, reinterpret_cast<int64_t>(this));
 
     JSValue fn = JS_NewCFunctionData(this->ctx, trampoline, 0, 0, 2, func_data);
-
-    // Free func_data
-    // this->free_jsvals(vector<JSValue>{func_data[0], func_data[1]});
 
     JS_SetPropertyStr(this->ctx, global, fn_name.c_str(), fn);
     this->free_jsval(global);

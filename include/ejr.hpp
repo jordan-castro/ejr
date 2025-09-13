@@ -9,12 +9,13 @@
 #include <functional>
 #include <unordered_map>
 #include <lib/quickjs_cpp_utils.hpp>
+#include <iostream>
 
 namespace ejr
 {
     // Types
     /// @brief A JSArg for dynamic typing.
-    using _JSArg = std::variant<int, double, float, long, std::string, bool, int64_t, uint32_t>;
+    using _JSArg = std::variant<int, double, float, long, std::string, bool, int64_t, uint32_t, uintptr_t>;
     /// @brief A JSArgs type
     using JSArg = std::variant<_JSArg, std::vector<_JSArg>>;
     /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg
@@ -27,7 +28,7 @@ namespace ejr
 
         PublicMethod(const std::string name, DynCallback callback) : name(name), callback(callback) {}
     };
-
+ 
     // Templates
     /**
      * Get a JSArg as a certain type.
@@ -53,13 +54,12 @@ namespace ejr
     /// @brief Get a T from a JSArg pointer
     template<typename T>
     T* get_obj_from_ptr(JSArg arg) {
-        int64_t ptr_val = jsarg_as<int64_t>(arg);
+        int64_t ptr_val = jsarg_as<uintptr_t>(arg);
         T* self = reinterpret_cast<T*>(ptr_val);
         return self;
     }
 
     // Utils
-
     /// @brief Convert a JSArg into a JSValue
     JSValue __to_js(JSContext *ctx, const _JSArg &arg);
     /// @brief Convert a JSArgs type into a JSValue.
@@ -83,8 +83,8 @@ namespace ejr
         /// @brief Callbacks
         std::unordered_map<std::string, DynCallback> callbacks;
 
-        /// @brief EasyJSR class as a JSValue pointer
-        JSValue js_ptr;
+        // /// @brief EasyJSR class as a JSValue pointer
+        // JSValue js_ptr;
 
     public:
         EasyJSR();
@@ -117,122 +117,144 @@ namespace ejr
         /// @brief register a callback (Runtime only)
         void register_callback(const std::string &fn_name, DynCallback callback);
         
-        /// @brief register a CPP class (Runtime only).
-        template<typename T>
-        inline void register_class(const std::string &class_name, const std::vector<PublicMethod>& public_methods) {
-            // Register a new class id
-            static JSClassID class_id = get_js_class_id<T>();
+        // /// @brief register a CPP class (Runtime only).
+        // template<typename T>
+        // inline void register_class(const std::string &class_name, std::vector<PublicMethod> public_methods) {
+        //     // Register a new class id
+        //     static JSClassID class_id = get_js_class_id<T>();
 
-            // Register the class definition
-            JSClassDef* def{};
-            def->class_name = class_name.c_str();
-            def->finalizer = [](JSRuntime* rt, JSValue val) {
-                // Free memory
-                if (auto* t = static_cast<T*>(JS_GetOpaque(val, class_id))) {
-                    delete t;
-                }
-            };
+        //     // Register the class definition
+        //     JSClassDef def{};
+        //     def.class_name = class_name.c_str();
+        //     def.finalizer = [](JSRuntime* rt, JSValue val) {
+        //         // Free memory
+        //         if (auto* t = static_cast<T*>(JS_GetOpaque(val, class_id))) {
+        //             delete t;
+        //         }
+        //     };
 
-            // Register new class
-            if (JS_NewClass(this->runtime, class_id, def) < 0) {
-                // Some kind of error happened here
-                // TODO: save some kind of error.
-                return;
-            }
+        //     // Register new class
+        //     if (JS_NewClass(this->runtime, class_id, &def) < 0) {
+        //         // Some kind of error happened here
+        //         // TODO: save some kind of error.
+        //         return;
+        //     }
 
-            // Constructor
-            auto t_ctor = [](JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv) {
-                // Build vector<JSArg>
-                std::vector<JSArg> args;
-                args.reserve(argc);
-                for (int i = 0; i < argc; ++i) {
-                    args.push_back(from_js(ctx, argv[i]));
-                }
+        //     // Constructor
+        //     auto t_ctor = [](JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv) {
+        //         // Build vector<JSArg>
+        //         std::vector<JSArg> args;
+        //         args.reserve(argc);
+        //         for (int i = 0; i < argc; ++i) {
+        //             args.push_back(from_js(ctx, argv[i]));
+        //         }
 
-                // Allocate JS Object
-                JSValue obj = JS_NewObjectClass(ctx, class_id);
-                if (JS_IsException(obj)) {
-                    return obj;
-                }
+        //         // Allocate JS Object
+        //         JSValue obj = JS_NewObjectClass(ctx, class_id);
+        //         if (JS_IsException(obj)) {
+        //             return obj;
+        //         }
 
-                // Construct native object
-                T* t = nullptr;
-                try {
-                    t = new T(args);
-                } catch (const std::exception& e) {
-                    JS_FreeValue(ctx, obj);
-                    return JS_ThrowInternalError(ctx, ("Constructor failed: " + std::string(e.what())).c_str());
-                }
+        //         // Construct native object
+        //         T* t = nullptr;
+        //         try {
+        //             t = new T(args);
+        //         } catch (const std::exception& e) {
+        //             JS_FreeValue(ctx, obj);
+        //             return JS_ThrowInternalError(ctx, ("Constructor failed: " + std::string(e.what())).c_str());
+        //         }
 
-                // Link native object to JS object
-                JS_SetOpaque(obj, t);
+        //         // Link native object to JS object
+        //         JS_SetOpaque(obj, t);
 
-                return obj;
-            };
+        //         return obj;
+        //     };
 
-            // Constructor func
-            JSValue t_ctor_func = JS_NewCFunction2(
-                this->ctx,
-                t_ctor,
-                class_name.c_str(),
-                1,
-                JS_CFUNC_constructor,
-                0
-            );
+        //     // Constructor func
+        //     JSValue t_ctor_func = JS_NewCFunction2(
+        //         this->ctx,
+        //         t_ctor,
+        //         class_name.c_str(),
+        //         1,
+        //         JS_CFUNC_constructor,
+        //         0
+        //     );
 
-            // Create prototype object
-            JSValue proto = JS_NewObject(this->ctx);
+        //     // Create prototype object
+        //     JSValue proto = JS_NewObject(this->ctx);
 
-            // Bind methods to prototype
-            for (const auto& m: public_methods) {
-                auto method_wrapper = [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic, JSValue* func_data) -> JSValue {
-                    // Recover PublicMethod
-                    PublicMethod* pm = reinterpret_cast<PublicMethod*>(JS_VALUE_GET_PTR(func_data[0]));
+        //     // Mangle the prototype name to the callbcks names
+        //     std::string mangled_name = "___" + class_name + "___";
+    
+        //     // Bind methods to prototype
+        //     for (size_t i = 0 ; i < public_methods.size(); i++) {
+        //         auto& m = public_methods[i];
 
-                    // Collect args as JSArg
-                    std::vector<JSArg> args;
-                    args.reserve(argc + 1);
+        //         auto method_wrapper = [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic, JSValue* func_data) -> JSValue {
+        //             std::cout << "Before recover PublicMethod ptr" << std::endl;
+        //             EasyJSR *self = reinterpret_cast<EasyJSR *>(JS_VALUE_GET_PTR(func_data[0]));
 
-                    // Push "this" pointer
-                    if (T* self = static_cast<T*>(JS_GetOpaque(this_val, class_id))) {
-                        args.push_back(reinterpret_cast<int64_t>(self));
-                    }
+        //             // Collect args as JSArg
+        //             std::vector<JSArg> args;
+        //             args.reserve(argc + 1);
+        //             std::cout << "Here 3" << std::endl;
 
-                    // Convert argv[]
-                    for (int i = 0; i < argc; ++i) {
-                        args.push_back(from_js(ctx, argv[i], false));
-                    } 
+        //             // Push "this" pointer
+        //             if (T* obj_ptr = static_cast<T*>(JS_GetOpaque(this_val, class_id))) {
+        //                 args.push_back(reinterpret_cast<uintptr_t>(obj_ptr));
+        //             }
+        //             std::cout << "Here 4" << std::endl;
 
-                    // Call user defined callback
-                    JSArg ret = pm->callback(args);
+        //             // Convert argv[]
+        //             for (int i = 0; i < argc; ++i) {
+        //                 args.push_back(from_js(ctx, argv[i], false));
+        //             } 
+        //             std::cout << "Here 5" << std::endl;
 
-                    // Convert back into JS
-                    return to_js(ctx, ret);
-                };
+        //             // Lookup callback by magic
+        //             const char *cbname_cstr = JS_ToCString(ctx, func_data[1]);
+        //             std::string cb_name(cbname_cstr);
+        //             JS_FreeCString(ctx, cbname_cstr);
 
-                // Store pointer in func_data
-                JSValue func_data[1];
+        //             auto it = self->callbacks.find(cb_name);
+        //             if (it == self->callbacks.end())
+        //             {
+        //                 return js_undefined();
+        //             }
 
-                func_data[0] = js_mkptr(JS_TAG_OBJECT, m);
-                // func_data[0] = JS_NewBigInt64(this->ctx, reinterpret_cast<int64_t>(&m));
-                // func_data[1] = JS_NewString(this->ctx, m.name.c_str());
+        //             // Call C++ callback
+        //             JSArg result = it->second(args);
 
-                JSValue fn = JS_NewCFunctionData(this->ctx, method_wrapper, 0, 0, 1, func_data);
-                // this->free_jsvals(std::vector<JSValue>{func_data[0], func_data[1]});
+        //             // Convert result back to JS
+        //             return to_js(ctx, result);
+        //         };
 
-                JS_SetPropertyStr(this->ctx, proto, m.name.c_str(), fn);
-            }
+        //         // Copy callback into callbcaks
+        //         std::string mangled_callback_name = mangled_name + m.name;
+        //         this->callbacks[mangled_callback_name] = public_methods[i].callback;
 
-            // Attach prototype constructor
-            JS_SetConstructor(this->ctx, t_ctor_func, proto);
+        //         // Store pointer in func_data
+        //         JSValue func_data[2];
 
-            // Expose globally
-            auto global = JS_GetGlobalObject(this->ctx);
-            JS_SetPropertyStr(this->ctx, global, class_name.c_str(), t_ctor_func);
+        //         // Store name and EasyJSR pointer
+        //         func_data[0] = this->js_ptr;
+        //         func_data[1] = JS_NewString(this->ctx, mangled_callback_name.c_str());
 
-            // Free global
-            this->free_jsval(global);
-        }
+        //         JSValue fn = JS_NewCFunctionData(this->ctx, method_wrapper, 0, 0, 2, func_data);
+
+        //         JS_SetPropertyStr(this->ctx, proto, m.name.c_str(), fn);
+        //     }
+
+        //     // Attach prototype constructor
+        //     JS_SetConstructor(this->ctx, t_ctor_func, proto);
+
+        //     // Expose globally
+        //     auto global = JS_GetGlobalObject(this->ctx);
+        //     JS_SetPropertyStr(this->ctx, global, class_name.c_str(), t_ctor_func);
+
+        //     // Free global
+        //     this->free_jsval(global);
+        // }
 
         // /// @brief Register a class dynamically (Runtime only)
         // void register_dynamic_class();

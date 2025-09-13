@@ -9,15 +9,9 @@ This exposes easy high level methods:
 
 ## Eval of scripts
 ```cpp
-auto evaled_script = ejr::eval_script("1 + 1");
-```
+unique_ptr<EasyJSR> easyjsr = make_unique<EasyJSR>();
 
-## Evaluating scripts
-```cpp
-bool success = ejr::evaluate_script("1 + 1");
-if (!success) {
-    ejr::log(ejr::last_error());
-}
+JSValue evaled_script = easyjsr->run_script("1 + 1");
 ```
 
 ## Compiling JS programs into executables
@@ -38,59 +32,29 @@ std::string js_script = R("
     }
 ");
 
-auto evaled_script = ejr::eval_script(js_script);
-evaled_script->call("say_hello_to", ["Jordan"]);
+JSValue result = easyjsr->call("say_hello_to", vector<JSArg>{"Jordan"});
 // Hello Jordan
-```
-
-## Getting a function to use later (in the same runtime instance)
-```cpp
-std::string js_script = R("
-    function add(n1,n2) {
-        return n1 + n2
-    }
-");
-
-auto evaled_script = ejr::eval_script(js_script);
-auto add_func = evaled_script->get_function("add");
-auto result = add_func->call([1,2]);
-
-if (result[0] != ejr::FAILED) {
-    std::cout << "Result is " << result << std::endl;
-}
+easyjsr->free_jsval(result);
 ```
 
 ## Creating callables
 ```cpp
-void print_line(std::string msg) {
-    std::cout << msg << std::endl;
+JSArg ___print(const vector<JSArg> args) {
+    string msg = jsarg_as<std::string>(args[0]);
+    cout << msg << endl;
+    return msg; 
 }
 
-auto runtime = ejr::new_runtime();
-runtime->add_callback(print_line);
-
-bool success = runtime->evaluate_script("print_line('Test')");
-if (!success) {
-    ejr::log(ejr::last_error());
-}
+// Register callback
+easyjsr->register_callback("___print", ___print);
+easyjsr->register_callback("lambda_call", [](const vector<JSArg>& args) -> JSArg {
+    cout << "Testing dayo!" << endl;
+    return 1;
+});
 ```
 
 ## Registering classes
-```cpp
-class Person : JSClassInterface {
-    public:
-        std::string name;
-        Person(const std::vector<JSArg>& args) {
-            this->name = jsarg_as<std::string>(args[0]);
-        }
-
-        JSArg print_name(const std::vector<JSArg>& args) {
-            std::cout << "My name is " << this->name << std::endl;
-            return nullptr;
-        }
-};
-
-```
+In progress...
 
 Think of the easyjsr runtime like a very very easy way to embed JS into your application. I have used a lot of different options, and while yes they work they 
 kinda fall into three different categories.
