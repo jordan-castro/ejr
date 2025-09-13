@@ -6,10 +6,23 @@
 using namespace std;
 using namespace ejr;
 
+class Person {
+    public:
+        string name;
+        Person(vector<JSArg> args) {
+            name = jsarg_as<std::string>(args[0]);
+        }
+
+        JSArg print_name(const vector<JSArg>& args) {
+            cout << name << endl;
+            return name;
+        }
+};
+
 JSArg ___print(const vector<JSArg> args) {
-    string msg = as<std::string>(args[0]);
+    string msg = jsarg_as<std::string>(args[0]);
     cout << msg << endl;
-    return msg;
+    return msg; 
 }
 
 int main() {
@@ -21,7 +34,7 @@ int main() {
             return `test ${add(n1, n2)}`;
         }
 
-        class Person {
+        class JSPerson {
             constructor(name) {
                 this.name = name;
             }
@@ -31,9 +44,21 @@ int main() {
             }
         }
 
-        p = new Person("Test");
+        p = new JSPerson("Test");
     )", "test.js");
-    
+
+    // Register class
+    easyjsr->register_class<Person>("Person", {
+        {
+            "print_name", 
+            [](const vector<JSArg> args) -> JSArg {
+                // Get ptr from first arg
+                auto p = get_obj_from_ptr<Person>(args[0]);
+                return p->print_name(args);
+            }
+        }
+    });
+
     // cout << "Result: " << easyjsr->val_to_string(val) << endl;
     JSValue testResult = easyjsr->eval_function("return_string", vector<JSArg>{10,2});
     cout << "Result: " << easyjsr->val_to_string(testResult) << endl;
@@ -46,6 +71,10 @@ int main() {
 
     // Register callback
     easyjsr->register_callback("___print", ___print);
+    easyjsr->register_callback("easyjsr_test", [](const vector<JSArg>& args) -> JSArg {
+        cout << "Testing dayo!" << endl;
+        return 1;
+    });
     easyjsr->free_jsval(val);
     val = easyjsr->run_script(R"(
         globalThis.console = {
@@ -58,8 +87,18 @@ int main() {
             },
         };
 
-        console.log("Hello World, next is", add(1,1))
+        console.log("Hello World, next is", add(1,1));
+        
+        easyjsr_test();
     )", "test2.js");
+    easyjsr->free_jsval(val);
+
+    // Evaluate
+    val = easyjsr->run_script(R"(
+        let p = new Person("Jordan");
+        p.print_name();
+    )", "test3.js");
+
     easyjsr->free_jsval(val);
 
     return 0;

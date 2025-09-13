@@ -1,5 +1,6 @@
 #include <include/ejr.hpp>
 #include <lib/quickjs_cpp_utils.hpp>
+#include <utility>
 
 using namespace ejr;
 using namespace std;
@@ -8,7 +9,6 @@ JSValue ejr::__to_js(JSContext *ctx, const _JSArg &arg)
     return std::visit([&](auto &&value) -> JSValue
                       {
             using T = std::decay_t<decltype(value)>;
-            // } else {
             if constexpr (std::is_same_v<T, int>) {
                 return JS_NewInt32(ctx, value);
             } else if constexpr (std::is_same_v<T, long>) {
@@ -21,8 +21,13 @@ JSValue ejr::__to_js(JSContext *ctx, const _JSArg &arg)
                 return JS_NewBool(ctx, value);
             } else if constexpr (std::is_same_v<T, std::string>) {
                 return JS_NewString(ctx, value.c_str());
-            } else {
-                return JS_UNDEFINED;
+            } else if constexpr (std::is_same_v<T, int64_t>) {
+                return JS_NewBigInt64(ctx, value);
+            } else if constexpr (std::is_same_v<T, uint32_t>) {
+                return JS_NewUint32(ctx, value);
+            }
+            else { 
+                return js_undefined();
             } }, arg);
 }
 
@@ -43,37 +48,65 @@ JSValue ejr::to_js(JSContext *ctx, const JSArg &args)
         } }, args);
 }
 
-JSArg ejr::from_js(JSContext* ctx, JSValue value) {
-    if (JS_IsString(value)) {
-        const char* val = JS_ToCString(ctx, value);
+JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
+{
+    if (JS_IsString(value))
+    {
+        const char *val = JS_ToCString(ctx, value);
         std::string val_string(val);
         JS_FreeCString(ctx, val);
-        JS_FreeValue(ctx, value);
+        if (force_free)
+        {
+            JS_FreeValue(ctx, value);
+        }
         return val_string;
-    } 
-    else if (JS_IsBool(value)) {
+    }
+    else if (JS_IsBool(value))
+    {
         int b = JS_ToBool(ctx, value);
-        JS_FreeValue(ctx, value);
+        if (force_free)
+        {
+            JS_FreeValue(ctx, value);
+        }
         return static_cast<bool>(b);
-    } 
-    else if (JS_IsNumber(value)) {
+    }
+    else if (JS_IsNumber(value))
+    {
         int32_t i32;
         int64_t i64;
         double d;
-        if (JS_ToInt32(ctx, &i32, value) == 0) {
-            JS_FreeValue(ctx, value);
+        if (JS_ToInt32(ctx, &i32, value) == 0)
+        {
+            if (force_free)
+            {
+                JS_FreeValue(ctx, value);
+            }
             return static_cast<int>(i32);
-        } else if (JS_ToInt64(ctx, &i64, value) == 0) {
-            JS_FreeValue(ctx, value);
+        }
+        else if (JS_ToInt64(ctx, &i64, value) == 0)
+        {
+            if (force_free)
+            {
+                JS_FreeValue(ctx, value);
+            }
             return static_cast<long>(i64);
-        } else if (JS_ToFloat64(ctx, &d, value) == 0) {
-            JS_FreeValue(ctx, value);
+        }
+        else if (JS_ToFloat64(ctx, &d, value) == 0)
+        {
+            if (force_free)
+            {
+                JS_FreeValue(ctx, value);
+            }
             return d;
         }
-        JS_FreeValue(ctx, value);
+        if (force_free)
+        {
+            JS_FreeValue(ctx, value);
+        }
         return 0; // fallback
-    } 
-    else if (JS_IsArray(ctx, value)) {
+    }
+    else if (JS_IsArray(ctx, value))
+    {
         uint32_t len;
         JSValue len_val = JS_GetPropertyStr(ctx, value, "length");
         JS_ToUint32(ctx, &len, len_val);
@@ -82,24 +115,36 @@ JSArg ejr::from_js(JSContext* ctx, JSValue value) {
         std::vector<_JSArg> vec;
         vec.reserve(len);
 
-        for (uint32_t i = 0; i < len; i++) {
+        for (uint32_t i = 0; i < len; i++)
+        {
             JSValue elem = JS_GetPropertyUint32(ctx, value, i);
             JSArg arg = from_js(ctx, elem);
-            if (std::holds_alternative<_JSArg>(arg)) {
+            if (std::holds_alternative<_JSArg>(arg))
+            {
                 vec.push_back(std::get<_JSArg>(arg));
             }
         }
 
-        JS_FreeValue(ctx, value);
+        if (force_free)
+        {
+            JS_FreeValue(ctx, value);
+        }
         return vec;
-    } 
-    else if (JS_IsNull(value) || JS_IsUndefined(value)) {
-        JS_FreeValue(ctx, value);
+    }
+    else if (JS_IsNull(value) || JS_IsUndefined(value))
+    {
+        if (force_free)
+        {
+            JS_FreeValue(ctx, value);
+        }
         return std::string("null"); // or maybe return false/0 depending on your design
     }
 
     // Fallback: return undefined as string
-    JS_FreeValue(ctx, value);
+    if (force_free)
+    {
+        JS_FreeValue(ctx, value);
+    }
     return std::string("[unsupported]");
 }
 
@@ -113,6 +158,9 @@ EasyJSR::EasyJSR()
     }
 
     this->ctx = JS_NewContext(this->runtime);
+
+    // Create a POINTER of this object
+    this->js_ptr = js_mkptr(JS_TAG_OBJECT, this);
 }
 
 EasyJSR::~EasyJSR()
@@ -143,8 +191,10 @@ void EasyJSR::free_jsval(JSValue value)
     JS_FreeValue(this->ctx, value);
 }
 
-void EasyJSR::free_jsvals(const vector<JSValue>& values) {
-    for (auto& val : values) {
+void EasyJSR::free_jsvals(const vector<JSValue> &values)
+{
+    for (auto &val : values)
+    {
         this->free_jsval(val);
     }
 }
@@ -188,7 +238,8 @@ string EasyJSR::val_to_string(JSValue value, bool free)
     return value_string;
 }
 
-JSValue EasyJSR::get_from_global(const string& name) {
+JSValue EasyJSR::get_from_global(const string &name)
+{
     JSValue global = JS_GetGlobalObject(this->ctx);
     JSValue val = JS_GetPropertyStr(this->ctx, global, name.c_str());
 
@@ -197,7 +248,8 @@ JSValue EasyJSR::get_from_global(const string& name) {
     return val;
 }
 
-JSValue EasyJSR::eval_class_function(JSValue class_obj, const string& fn_name, const vector<JSArg>& args) {
+JSValue EasyJSR::eval_class_function(JSValue class_obj, const string &fn_name, const vector<JSArg> &args)
+{
     JSValue function = JS_GetPropertyStr(this->ctx, class_obj, fn_name.c_str());
     vector<JSValue> js_args;
 
@@ -214,29 +266,30 @@ JSValue EasyJSR::eval_class_function(JSValue class_obj, const string& fn_name, c
     return result;
 }
 
-void EasyJSR::register_callback(const string &fn_name, DynCallback callback) {
-    this->callbacks[fn_name] = callback;
+void EasyJSR::register_callback(const string &fn_name, DynCallback callback)
+{
+    this->callbacks[fn_name] = std::move(callback);
 
     // Create JS function bound to callback
-    auto trampoline = [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic, JSValue* func_data) -> JSValue {
-        // Recover EasyJSR* from int64
-        int64_t ptr_val;
-        JS_ToInt64(ctx, &ptr_val, func_data[0]);
-        EasyJSR* self = reinterpret_cast<EasyJSR*>(ptr_val);
+    auto trampoline = [](JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data) -> JSValue
+    {
+        EasyJSR *self = reinterpret_cast<EasyJSR *>(JS_VALUE_GET_PTR(func_data[0]));
 
         // Convert JS args -> std::vector<JSArg>
         std::vector<JSArg> cpp_args;
-        for (int i = 0; i < argc; i++) {
-            cpp_args.push_back(from_js(ctx, argv[i])); // you already have `jsvalue_to_jsarg`
+        for (int i = 0; i < argc; i++)
+        {
+            cpp_args.push_back(from_js(ctx, argv[i], false));
         }
 
         // Lookup callback by magic
-        const char* cbname_cstr = JS_ToCString(ctx, func_data[1]);
+        const char *cbname_cstr = JS_ToCString(ctx, func_data[1]);
         std::string cb_name(cbname_cstr);
         JS_FreeCString(ctx, cbname_cstr);
-        
+
         auto it = self->callbacks.find(cb_name);
-        if (it == self->callbacks.end()) {
+        if (it == self->callbacks.end())
+        {
             return js_undefined();
         }
 
@@ -251,13 +304,15 @@ void EasyJSR::register_callback(const string &fn_name, DynCallback callback) {
     JSValue global = JS_GetGlobalObject(this->ctx);
 
     JSValue func_data[2];
-    func_data[0] = JS_NewInt64(this->ctx, reinterpret_cast<int64_t>(this));
+    func_data[0] = this->js_ptr;
     func_data[1] = JS_NewString(this->ctx, fn_name.c_str());
+    // func_data[1] = js_mkptr(JS_TAG_OBJECT, &this->callbacks[fn_name]);
+    // func_data[0] = JS_NewBigInt64(this->ctx, reinterpret_cast<int64_t>(this));
 
     JSValue fn = JS_NewCFunctionData(this->ctx, trampoline, 0, 0, 2, func_data);
 
     // Free func_data
-    this->free_jsvals(vector<JSValue>{func_data[0], func_data[1]});
+    // this->free_jsvals(vector<JSValue>{func_data[0], func_data[1]});
 
     JS_SetPropertyStr(this->ctx, global, fn_name.c_str(), fn);
     this->free_jsval(global);

@@ -7,3 +7,4 @@
 - ~~setting callbacks~~
 - ~~add vector to JSArg type~~
 - Regestering custom classes
+- Macro for loading custom JS files to include at startup.

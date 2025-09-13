@@ -77,26 +77,19 @@ if (!success) {
 
 ## Registering classes
 ```cpp
-class Person {
+class Person : JSClassInterface {
     public:
         std::string name;
-        Person(const std::string& name) {
-            this->name = name;
+        Person(const std::vector<JSArg>& args) {
+            this->name = jsarg_as<std::string>(args[0]);
         }
 
-        void print_name() {
+        JSArg print_name(const std::vector<JSArg>& args) {
             std::cout << "My name is " << this->name << std::endl;
+            return nullptr;
         }
 };
 
-easyjsr->register_class<Person>(
-    "Person", 
-    vector<PublicMethod>{
-        PublicMethod("print_name", T) // Don't know what type will look like rn
-    },
-    vector<PrivateMethod>{}, // None for now
-    // Potentially Static Methods?
-);
 ```
 
 Think of the easyjsr runtime like a very very easy way to embed JS into your application. I have used a lot of different options, and while yes they work they 

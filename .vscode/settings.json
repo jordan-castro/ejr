@@ -53,6 +53,9 @@
         "xutility": "cpp",
         "variant": "cpp",
         "vector": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "functional": "cpp",
+        "list": "cpp",
+        "xhash": "cpp"
     }
 }

@@ -27,7 +27,10 @@ files = [
     "list.h",
     // Simple linked-list macros used throughout.
     "quickjs-atom.h",
-    "quickjs-opcode.h"
+    "quickjs-opcode.h",
+    // quickjs-lib (std, os)
+    "quickjs-libc.c",
+    "quickjs-libc.h"
 ]
 // https://raw.githubusercontent.com/bellard/quickjs/refs/heads/master/file
 
