@@ -12,3 +12,6 @@
     - For now just doing callback first method
 - ~~Macro for loading custom JS files to include at startup.~~
 - advanced error logging
+- add support for all JS Values in _JSArg
+- Add globalThis.console support
+- Add IO support (better than NODE please!!!)
