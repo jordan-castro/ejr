@@ -15,11 +15,13 @@ namespace ejr
 {
     // Types
     /// @brief A JSArg for dynamic typing.
-    using _JSArg = std::variant<int, double, float, long, std::string, bool, int64_t, uint32_t, uintptr_t>;
+    using _JSArg = std::variant<int, double, float, long, std::string, bool, int64_t, uint32_t>;
     /// @brief A JSArgs type
     using JSArg = std::variant<_JSArg, std::vector<_JSArg>>;
     /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg
     using DynCallback = std::function<JSArg(const std::vector<JSArg>&)>;
+    /// @brief Shorthand for std::vector<JSArg>
+    using JSArgs = std::vector<JSArg>;
     
     /// @brief PublicMethod for adding classes.
     struct PublicMethod {
@@ -37,6 +39,8 @@ namespace ejr
     T jsarg_as(const ejr::JSArg& arg) {
         if (std::holds_alternative<_JSArg>(arg)) {
             return std::get<T>(std::get<_JSArg>(arg));
+        // } else if (std::holds_alternative<std::vector<_JSArg>(arg)) {
+        //     // TODO: return this jaunt BACK!
         }
         throw std::bad_variant_access(); // not a scalar
     }
@@ -51,14 +55,6 @@ namespace ejr
         return class_id;
     }
 
-    /// @brief Get a T from a JSArg pointer
-    template<typename T>
-    T* get_obj_from_ptr(JSArg arg) {
-        int64_t ptr_val = jsarg_as<uintptr_t>(arg);
-        T* self = reinterpret_cast<T*>(ptr_val);
-        return self;
-    }
-
     // Utils
     /// @brief Convert a JSArg into a JSValue
     JSValue __to_js(JSContext *ctx, const _JSArg &arg);
@@ -66,6 +62,8 @@ namespace ejr
     JSValue to_js(JSContext *ctx, const JSArg &args);
     /// @brief Convert a JSValue into a JSArg
     JSArg from_js(JSContext *ctx, JSValue value, bool force_free=true);
+    /// @brief Convert a JSArg into a string, will return "unkown" if not vaild JSArg to string
+    std::string jsarg_to_str(const JSArg& arg);
 
     // EasyJSR class
     /**
@@ -82,9 +80,6 @@ namespace ejr
 
         /// @brief Callbacks
         std::unordered_map<std::string, DynCallback> callbacks;
-
-        // /// @brief EasyJSR class as a JSValue pointer
-        // JSValue js_ptr;
 
     public:
         EasyJSR();

@@ -152,6 +152,11 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
     return std::string("[unsupported]");
 }
 
+// TODO: Finish jsarg to string!
+string ejr::jsarg_to_str(const JSArg& arg) {
+    return jsarg_as<std::string>(arg);    
+}
+
 EasyJSR::EasyJSR()
 { 
     this->runtime = JS_NewRuntime();

@@ -6,10 +6,10 @@
 
 using namespace std;
 using namespace ejr;
+
 int main() {
     unique_ptr<EasyJSR> easyjsr = make_unique<EasyJSR>();
 
-    // REPL test
     include_console_std(*easyjsr);
  
     while (1) {
@@ -31,19 +31,5 @@ int main() {
     }
 
     cout << "So long, and thanks for all the fish!" << endl;
-
-    // TODO: Optionally Register C++ classes (This is for when you are using the library in a C++ project.)
-    // easyjsr->register_class<Person>("Person", {
-    //     {
-    //         "print_name", 
-    //         [](const vector<JSArg> args) -> JSArg {
-    //             cout << "Calling from print_name" << endl;
-    //             // Get ptr from first arg
-    //             auto p = get_obj_from_ptr<Person>(args[0]);
-    //             return p->print_name(args);
-    //         }
-    //     }
-    // });
-    // For all other projects use full callbacks. JS should not touch your C++ classes.
     return 0;
 }

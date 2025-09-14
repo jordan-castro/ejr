@@ -16,16 +16,21 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall")
 # Include directories
 # ------------------------------
 include_directories(
+    ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/lib
     ${PROJECT_SOURCE_DIR}/js
+    ${PROJECT_SOURCE_DIR}/stdlib
 )
 
 # ------------------------------
 # Source files
 # ------------------------------
 file(GLOB C_SOURCES "lib/*.c")
-file(GLOB CPP_SOURCES "src/*.cpp")
+file(GLOB CPP_SOURCES
+    "stdlib/*.cpp"
+    "src/*.cpp"
+)
 
 # ------------------------------
 # Add executable
