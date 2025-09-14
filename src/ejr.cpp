@@ -1,6 +1,7 @@
 #include <include/ejr.hpp>
 #include <lib/quickjs_cpp_utils.hpp>
 #include <utility>
+#include <js/include_console.h>
 
 using namespace ejr;
 using namespace std;
@@ -322,4 +323,9 @@ void EasyJSR::register_callback(const string &fn_name, DynCallback callback)
 
     JS_SetPropertyStr(this->ctx, global, fn_name.c_str(), fn);
     this->free_jsval(global);
+}
+
+void EasyJSR::include_stdlib() {
+    auto console_result = this->run_script(console_contents, "[script]");
+    this->free_jsval(console_result);
 }

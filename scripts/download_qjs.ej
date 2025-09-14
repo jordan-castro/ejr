@@ -29,8 +29,8 @@ files = [
     "quickjs-atom.h",
     "quickjs-opcode.h",
     // quickjs-lib (std, os)
-    "quickjs-libc.c",
-    "quickjs-libc.h"
+    // "quickjs-libc.c",
+    // "quickjs-libc.h"
 ]
 // https://raw.githubusercontent.com/bellard/quickjs/refs/heads/master/file
 

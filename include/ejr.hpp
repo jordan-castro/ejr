@@ -116,6 +116,11 @@ namespace ejr
 
         /// @brief register a callback (Runtime only)
         void register_callback(const std::string &fn_name, DynCallback callback);
+
+        /// @brief include ejr standard lib (Optional)
+        /// If you don't include it, then that means you want to write your own.
+        /// This is seperate from the quickjs-libc because I wanted a much simpler c++ api.
+        void include_stdlib();
         
         // /// @brief register a CPP class (Runtime only).
         // template<typename T>
