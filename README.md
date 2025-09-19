@@ -11,7 +11,7 @@ This exposes easy high level methods:
 ```cpp
 unique_ptr<EasyJSR> easyjsr = make_unique<EasyJSR>();
 
-JSValue evaled_script = easyjsr->run_script("1 + 1");
+JSValue evaled_script = easyjsr->eval_script("1 + 1");
 ```
 
 ## Compiling JS programs into executables

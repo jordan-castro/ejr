@@ -2,9 +2,51 @@
 #include <lib/quickjs_cpp_utils.hpp>
 #include <utility>
 #include <js/include_console.h>
+#include "utils.hpp"
 
 using namespace ejr;
 using namespace std;
+
+// Module loader
+static JSModuleDef *js_module_loader(JSContext *ctx, const char *module_name, void *opaque)
+{
+    cout << "Module time dayo: " << module_name << endl;
+    // TODO: native support
+    // Get easyjsr
+    EasyJSR* ejsr = static_cast<EasyJSR*>(opaque);
+    // Check for native module
+    auto it = ejsr->modules.find(string(module_name));
+    if (it != ejsr->modules.end()) {
+        cout << "Found module!" << endl;
+        return it->second; 
+    }
+    // TODO: .json support
+
+    // Open JS file
+    EJRError<string> result = load_js_file(string(module_name));
+    if (result.has_error)
+    {
+        cout << "Error loading file: " << result.msg << endl;
+        // TODO: log the error
+        return nullptr;
+    }
+    string contents = result.result;
+
+    // Compile the module
+    JSValue func_val;
+    func_val = JS_Eval(ctx, contents.c_str(), contents.size(), module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+    
+    // Check exception
+    if (JS_IsException(func_val)) {
+        cout << "Error compiling module" << endl;
+        return nullptr;
+    }
+
+    JSModuleDef* m = static_cast<JSModuleDef*>(JS_VALUE_GET_PTR(func_val));
+    JS_FreeValue(ctx, func_val);
+
+    return m;
+}
 
 JSValue ejr::__to_js(JSContext *ctx, const _JSArg &arg)
 {
@@ -153,12 +195,36 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
 }
 
 // TODO: Finish jsarg to string!
-string ejr::jsarg_to_str(const JSArg& arg) {
-    return jsarg_as<std::string>(arg);    
+string ejr::jsarg_to_str(const JSArg &arg)
+{
+    return jsarg_as<std::string>(arg);
+}
+
+EJRValue::EJRValue(JSContext *ctx, JSValue val)
+{
+    this->ctx = ctx;
+    this->val = val;
+}
+
+EJRValue::~EJRValue()
+{
+    // if (JS_IsLiveObject(this->runtime, this->val)) {
+    JS_FreeValue(this->ctx, this->val);
+    // }
+}
+
+JSValue &EJRValue::get_ref()
+{
+    return this->val;
+}
+
+JSMethod::JSMethod(const string& name, DynCallback callback) {
+    this->name = name;
+    this->callback = std::move(callback);
 }
 
 EasyJSR::EasyJSR()
-{ 
+{
     this->runtime = JS_NewRuntime();
     if (!this->runtime)
     {
@@ -166,10 +232,10 @@ EasyJSR::EasyJSR()
         return;
     }
 
-    this->ctx = JS_NewContext(this->runtime);
+    // Setup module loader
+    JS_SetModuleLoaderFunc(this->runtime, nullptr, js_module_loader, static_cast<void*>(this));
 
-    // Create a POINTER of this object
-    // this->js_ptr = js_mkptr(JS_TAG_OBJECT, this);
+    this->ctx = JS_NewContext(this->runtime);
 }
 
 EasyJSR::~EasyJSR()
@@ -188,14 +254,22 @@ EasyJSR::~EasyJSR()
         JS_FreeRuntime(this->runtime);
         this->runtime = nullptr;
     }
-
 }
 
-JSValue EasyJSR::run_script(const string &js_script, const string &file_name)
+JSValue EasyJSR::eval_script(const string &js_script, const string &file_name)
 {
-    JSValue val = JS_Eval(this->ctx, js_script.c_str(), js_script.size(), file_name.c_str(), JS_EVAL_TYPE_GLOBAL);
+    JSValue val = this->eval(js_script, file_name, JS_EVAL_TYPE_GLOBAL);
 
     return val;
+}
+
+JSValue EasyJSR::eval_module(const string &js_module, const string& file_name)
+{
+    JSValue promise = this->eval(js_module, file_name, JS_EVAL_TYPE_MODULE);
+    JSValue promise_result = JS_PromiseResult(this->ctx, promise);
+
+    this->free_jsval(promise);
+    return promise_result;
 }
 
 void EasyJSR::free_jsval(JSValue value)
@@ -211,9 +285,9 @@ void EasyJSR::free_jsvals(const vector<JSValue> &values)
     }
 }
 
-JSValue EasyJSR::eval(const string &js_script, const string &file_name)
+JSValue EasyJSR::eval(const string &js_script, const string &file_name, int eval_flags)
 {
-    return JS_Eval(this->ctx, js_script.c_str(), js_script.size(), file_name.c_str(), JS_EVAL_FLAG_COMPILE_ONLY);
+    return JS_Eval(this->ctx, js_script.c_str(), js_script.size(), file_name.c_str(), eval_flags);
 }
 
 JSValue EasyJSR::eval_function(const string &fnName, const vector<JSArg> &args)
@@ -228,20 +302,28 @@ JSValue EasyJSR::eval_function(const string &fnName, const vector<JSArg> &args)
 
 string EasyJSR::val_to_string(JSValue value, bool free)
 {
+    // Clean val first
+    tuple<JSValue, bool> cleaned = this->clean_js_value(value);
+    JSValue cleaned_value = std::get<0>(cleaned);
+
     const char *c_string;
-    if (JS_IsString(value))
+    if (JS_IsString(cleaned_value))
     {
-        c_string = JS_ToCString(this->ctx, value);
+        c_string = JS_ToCString(this->ctx, cleaned_value);
     }
     else
     {
-        JSValue js_string = JS_ToString(this->ctx, value);
+        JSValue js_string = JS_ToString(this->ctx, cleaned_value);
         c_string = JS_ToCString(this->ctx, js_string);
+
         this->free_jsval(js_string);
     }
 
     if (free)
     {
+        if (std::get<1>(cleaned)) {
+            this->free_jsval(cleaned_value);
+        }
         this->free_jsval(value);
     }
     string value_string = string(c_string);
@@ -280,7 +362,55 @@ JSValue EasyJSR::eval_class_function(JSValue class_obj, const string &fn_name, c
 
 void EasyJSR::register_callback(const string &fn_name, DynCallback callback)
 {
-    this->callbacks[fn_name] = std::move(callback);
+    JSValue global = JS_GetGlobalObject(this->ctx);
+
+    auto fn = this->create_trampoline(fn_name, callback);
+
+    JS_SetPropertyStr(this->ctx, global, fn_name.c_str(), fn);
+    this->free_jsval(global);
+}
+
+void EasyJSR::register_module(const string &module_name, const vector<JSMethod>& methods) {
+    JSModuleDef *m = JS_NewCModule(this->ctx, module_name.c_str(), nullptr);
+
+    // Create the trampolines
+    for (auto& method : methods) {
+        // Mangle the callback name in EasyJSR.
+        string method_name = "__" + module_name + method.name;
+        auto fn = this->create_trampoline(method_name, method.callback);
+        JS_SetModuleExport(this->ctx, m, method.name.c_str(), fn);
+    }
+
+    this->modules[module_name] = m;
+}
+
+tuple<JSValue, bool> EasyJSR::clean_js_value(JSValue val)
+{
+    if (JS_IsException(val))
+    {
+        JSValue js_exception = JS_GetException(this->ctx);
+
+        // User has to free this result manunally
+        return make_tuple(js_exception, true);
+    }
+    else
+    {
+        return make_tuple(val, false);
+    }
+}
+
+EJRValue EasyJSR::wrap_js_val(JSValue val)
+{
+    return EJRValue(this->ctx, val);
+}
+
+JSValue EasyJSR::get_property_from(JSValue this_obj, string property)
+{
+    return JS_GetPropertyStr(this->ctx, this_obj, property.c_str());
+}
+
+JSValue EasyJSR::create_trampoline(const string& cb_name, DynCallback cb) {
+    this->callbacks[cb_name] = std::move(cb);
 
     // Create JS function bound to callback
     auto trampoline = [](JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data) -> JSValue
@@ -288,7 +418,7 @@ void EasyJSR::register_callback(const string &fn_name, DynCallback callback)
         int64_t address_int64;
         JS_ToBigInt64(ctx, &address_int64, func_data[0]);
         uintptr_t address = static_cast<uintptr_t>(address_int64);
-        EasyJSR *self = reinterpret_cast<EasyJSR*>(address);
+        EasyJSR *self = reinterpret_cast<EasyJSR *>(address);
 
         // Convert JS args -> std::vector<JSArg>
         std::vector<JSArg> cpp_args;
@@ -314,23 +444,14 @@ void EasyJSR::register_callback(const string &fn_name, DynCallback callback)
         // Convert result back to JS
         return to_js(ctx, result);
     };
-
     // Store EasyJSR* and callback name inside function object
-    JSValue global = JS_GetGlobalObject(this->ctx);
-
     JSValue func_data[2];
     uintptr_t address = reinterpret_cast<uintptr_t>(this);
     int64_t address_int64 = static_cast<int64_t>(address);
     func_data[0] = JS_NewBigInt64(this->ctx, address_int64);
-    func_data[1] = JS_NewString(this->ctx, fn_name.c_str());
+    func_data[1] = JS_NewString(this->ctx, cb_name.c_str());
 
     JSValue fn = JS_NewCFunctionData(this->ctx, trampoline, 0, 0, 2, func_data);
 
-    JS_SetPropertyStr(this->ctx, global, fn_name.c_str(), fn);
-    this->free_jsval(global);
-}
-
-void EasyJSR::include_stdlib() {
-    auto console_result = this->run_script(console_contents, "[script]");
-    this->free_jsval(console_result);
+    return fn;
 }

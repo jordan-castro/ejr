@@ -44,7 +44,7 @@ namespace ejr {
         rt.register_callback("___error", ___error);
         rt.register_callback("___warn", ___warn);
 
-        JSValue val = rt.run_script(console_contents, "<script>");
+        JSValue val = rt.eval_script(console_contents, "<script>");
         rt.free_jsval(val);
     }
 }

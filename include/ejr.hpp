@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <lib/quickjs_cpp_utils.hpp>
 #include <iostream>
+#include <tuple>
 
 namespace ejr
 {
@@ -18,19 +19,48 @@ namespace ejr
     using _JSArg = std::variant<int, double, float, long, std::string, bool, int64_t, uint32_t>;
     /// @brief A JSArgs type
     using JSArg = std::variant<_JSArg, std::vector<_JSArg>>;
-    /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg
+    /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg 
     using DynCallback = std::function<JSArg(const std::vector<JSArg>&)>;
     /// @brief Shorthand for std::vector<JSArg>
     using JSArgs = std::vector<JSArg>;
+
+    /// @brief RAII JSValue
+    /// Use this inteligently, sometimes you want to free the JSValue manually.
+    class EJRValue {
+        private:
+            JSValue val;
+            JSContext* ctx;
+        public:
+            EJRValue(JSContext* ctx, JSValue val);
+            ~EJRValue();
+            
+            JSValue& get_ref();
+
+            // Don't allow copying
+            EJRValue(const EJRValue&) = delete;
+            EJRValue& operator =(const EJRValue&) = delete;
+            EJRValue(EJRValue&& other) noexcept : val(other.val) , ctx(other.ctx) {
+                other.val = js_undefined();
+            }
+            EJRValue& operator=(EJRValue&& other) noexcept {
+                if (this != &other) {
+                    JS_FreeValue(this->ctx, this->val);
+                    val = other.val;
+                    this->ctx = other.ctx;
+                    other.val = js_undefined();
+                }
+                return *this;
+            }
+    };
     
-    /// @brief PublicMethod for adding classes.
-    struct PublicMethod {
+    /// @brief A method.
+    struct JSMethod {
         std::string name;
         DynCallback callback;
 
-        PublicMethod(const std::string name, DynCallback callback) : name(name), callback(callback) {}
+        JSMethod(const std::string& name, DynCallback callback);
     };
- 
+
     // Templates
     /**
      * Get a JSArg as a certain type.
@@ -81,12 +111,24 @@ namespace ejr
         /// @brief Callbacks
         std::unordered_map<std::string, DynCallback> callbacks;
 
+        /// @brief Make sure if the value is a exception we return a string of cause: $cause, message: $message
+        std::tuple<JSValue, bool> clean_js_value(JSValue val);
+
+        /// @brief Create a trampoline that calls a callback from callbacks.
+        JSValue create_trampoline(const std::string& cb_name, DynCallback cb);
+
     public:
         EasyJSR();
         ~EasyJSR();
 
+        /// @brief registered Modules
+        std::unordered_map<std::string, JSModuleDef*> modules;
+
         /// @brief a really easy way to run a JS script. No strings attached, very plain way.
-        JSValue run_script(const std::string &js, const std::string &file_name);
+        JSValue eval_script(const std::string &js, const std::string &file_name);
+
+        /// @brief a really easy way to run a JS module. No strings attached, very plain way.
+        JSValue eval_module(const std::string &js, const std::string &file_name);
 
         /// @brief free a JSValue using this runtimes context.
         void free_jsval(JSValue value);
@@ -94,8 +136,8 @@ namespace ejr
         /// @brief Free a vector of JSValue
         void free_jsvals(const std::vector<JSValue>& js_args);
 
-        /// @brief evaluate a JS script without running it.
-        JSValue eval(const std::string &js, const std::string &file_name);
+        /// @brief evaluate JS with strings attached. 
+        JSValue eval(const std::string &js, const std::string &file_name, int eval_flags);
 
         /// @brief evalute a function from the current global context.
         JSValue eval_function(const std::string &fnName, const std::vector<JSArg> &args);
@@ -109,13 +151,17 @@ namespace ejr
         /// @brief Evalute a function on a class/object.
         JSValue eval_class_function(JSValue obj, const std::string &fn_name, const std::vector<JSArg> &args);
 
+        /// @brief get a property from a JSValue object
+        JSValue get_property_from(JSValue object, std::string property);
+
+        /// @brief Wrap a JSValue in a EJRValue for RAII
+        EJRValue wrap_js_val(JSValue val);
+
         /// @brief register a callback (Runtime only)
         void register_callback(const std::string &fn_name, DynCallback callback);
 
-        /// @brief include ejr standard lib (Optional)
-        /// If you don't include it, then that means you want to write your own.
-        /// This is seperate from the quickjs-libc because I wanted a much simpler c++ api.
-        void include_stdlib();
+        /// @brief register a module (Runtime only)
+        void register_module(const std::string &module_name, const std::vector<JSMethod>& methods);
         
         // /// @brief register a CPP class (Runtime only).
         // template<typename T>
