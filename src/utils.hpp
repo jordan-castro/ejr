@@ -5,6 +5,7 @@
 #include <include/ejr_error.hpp>
 #include <lib/quickjs.h>
 #include <sstream>
+#include <vector>
 
 namespace ejr
 {
@@ -21,5 +22,8 @@ namespace ejr
 
     /// @brief trim string
     std::string str_trim(const std::string &str);
-    
+
+    /// @brief split a string
+    std::vector<std::string> str_split(const std::string& s, const std::string& delimiter);
+
 }

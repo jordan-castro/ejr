@@ -6,6 +6,8 @@ This exposes easy high level methods:
 - Evaluating Scripts
 - Compiling JS programs into executables
 - Calling specific functions
+- registering callbacks at runtime
+- registering modules at runtime
 
 ## Eval of scripts
 ```cpp
@@ -37,7 +39,7 @@ JSValue result = easyjsr->call("say_hello_to", vector<JSArg>{"Jordan"});
 easyjsr->free_jsval(result);
 ```
 
-## Creating callables
+## Registering callables
 ```cpp
 JSArg ___print(const vector<JSArg> args) {
     string msg = jsarg_as<std::string>(args[0]);
@@ -55,6 +57,20 @@ easyjsr->register_callback("lambda_call", [](const vector<JSArg>& args) -> JSArg
 
 ## Registering classes
 In progress...
+
+## Registering modules
+```cpp
+
+easyjsr->register_module("ejr:john_cena", vector<JSMethod>{
+    JSMethod("test", [](const JSArgs& args) -> JSArg {
+        return "AND HIS NAME IS JOHN CENA!";
+    })
+});
+
+// Now in JS you can do:
+// import {test} from "ejr:john_cena";
+// console.log(test());
+```
 
 Think of the easyjsr runtime like a very very easy way to embed JS into your application. I have used a lot of different options, and while yes they work they 
 kinda fall into three different categories.

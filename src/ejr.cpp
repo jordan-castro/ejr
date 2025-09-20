@@ -10,14 +10,11 @@ using namespace std;
 // Module loader
 static JSModuleDef *js_module_loader(JSContext *ctx, const char *module_name, void *opaque)
 {
-    cout << "Module time dayo: " << module_name << endl;
-    // TODO: native support
     // Get easyjsr
     EasyJSR* ejsr = static_cast<EasyJSR*>(opaque);
     // Check for native module
     auto it = ejsr->modules.find(string(module_name));
     if (it != ejsr->modules.end()) {
-        cout << "Found module!" << endl;
         return it->second; 
     }
     // TODO: .json support
@@ -256,6 +253,40 @@ EasyJSR::~EasyJSR()
     }
 }
 
+int EasyJSR::module_init(JSContext*ctx, JSModuleDef*m) {
+    // Get the module name
+    JSAtom module_name_atom = JS_GetModuleName(ctx, m);
+    const char* module_name = JS_AtomToCString(ctx, module_name_atom);
+    string mod = string(module_name);
+    
+    JS_FreeAtom(ctx, module_name_atom);
+    JS_FreeCString(ctx, module_name);
+
+    // Get pointer and real module name
+    vector<string> module_data = str_split(mod, "::");
+    string ptr = module_data[0];
+    string real_mod_name = module_data[1];
+
+    // Dereference easyjsr
+    uintptr_t pval = stoull(ptr, nullptr, 16);
+    EasyJSR* ejsr = reinterpret_cast<EasyJSR*>(pval);
+
+    // Now lets add our module methods...
+    vector<tuple<string, JSValue>> module_methods = ejsr->methods_by_module[real_mod_name];
+    
+    for (auto& method : module_methods) {
+        // Get method name
+        string method_name = std::get<0>(method);
+        // Get method value
+        JSValue method_value = std::get<1>(method);
+
+        // Set module export
+        JS_SetModuleExport(ctx, m, method_name.c_str(), method_value);
+    }
+
+    return 0;
+}
+
 JSValue EasyJSR::eval_script(const string &js_script, const string &file_name)
 {
     JSValue val = this->eval(js_script, file_name, JS_EVAL_TYPE_GLOBAL);
@@ -371,16 +402,34 @@ void EasyJSR::register_callback(const string &fn_name, DynCallback callback)
 }
 
 void EasyJSR::register_module(const string &module_name, const vector<JSMethod>& methods) {
-    JSModuleDef *m = JS_NewCModule(this->ctx, module_name.c_str(), nullptr);
+    // Check if module_name already exists
+    if (this->modules.find(module_name) != this->modules.end()) {
+        // TODO: logs
+        cout << "Module: " << module_name << " already registered." << endl;
+    }
+
+    // Mangled with ptr module name
+    ostringstream oss;
+    oss << this;
+    oss << "::" << module_name;
+    string mangled_with_ptr_name = oss.str();
+
+    JSModuleDef *m = JS_NewCModule(this->ctx, mangled_with_ptr_name.c_str(), EasyJSR::module_init);
+
+    vector<tuple<string, JSValue>> module_methods;
 
     // Create the trampolines
     for (auto& method : methods) {
         // Mangle the callback name in EasyJSR.
-        string method_name = "__" + module_name + method.name;
-        auto fn = this->create_trampoline(method_name, method.callback);
-        JS_SetModuleExport(this->ctx, m, method.name.c_str(), fn);
+        string cb_name = "__" + module_name + "_" + method.name;
+        string method_name = method.name;
+        JS_AddModuleExport(this->ctx, m, method.name.c_str());
+        // Create actual method in EJR, and just keep the JSValue alive for now...
+        auto fn = this->create_trampoline(cb_name, method.callback);
+        module_methods.push_back(make_tuple(method_name, fn));
     }
 
+    this->methods_by_module[module_name] = module_methods; 
     this->modules[module_name] = m;
 }
 

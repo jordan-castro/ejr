@@ -117,9 +117,15 @@ namespace ejr
         /// @brief Create a trampoline that calls a callback from callbacks.
         JSValue create_trampoline(const std::string& cb_name, DynCallback cb);
 
+        /// @brief Unmangled names of methods with their JSValue. 
+        std::unordered_map<std::string, std::vector<std::tuple<std::string, JSValue>>> methods_by_module;
+
     public:
         EasyJSR();
         ~EasyJSR();
+
+        /// @brief initiate a module statically
+        static int module_init(JSContext*ctx, JSModuleDef*m);
 
         /// @brief registered Modules
         std::unordered_map<std::string, JSModuleDef*> modules;

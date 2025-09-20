@@ -19,7 +19,7 @@ int main() {
         return filesystem::current_path().string();
     });
 
-    easyjsr->register_module("john_cena", vector<JSMethod>{
+    easyjsr->register_module("ejr:john_cena", vector<JSMethod>{
         JSMethod("test", [](const JSArgs& args) -> JSArg {
             return "AND HIS NAME IS JOHN CENA!";
         })

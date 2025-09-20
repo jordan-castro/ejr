@@ -16,7 +16,7 @@ for file in files:
     print("Creating header for ", file_name)
     header_file_name = "js/include_" + file_name + ".h"
     contents_2_write = ""
-    definition = f"INCLUDE_{file_name.upper()}"
+    definition = f"EJR_INCLUDE_{file_name.upper()}_H"
     with open(file, 'r') as f:
         file_contents = f.read()
         contents_2_write = f'''

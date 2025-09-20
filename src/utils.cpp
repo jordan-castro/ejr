@@ -78,4 +78,19 @@ namespace ejr
         return s.substr(start, end - start + 1);
     }
 
+    vector<string> str_split(const string &s, const string &delimiter) {
+        vector<string> tokens;
+        size_t start = 0;
+        size_t end;
+
+        while ((end = s.find(delimiter, start)) != string::npos) {
+            tokens.push_back(s.substr(start, end - start));
+            start = end + delimiter.length();
+        }
+
+        // Add the last token
+        tokens.push_back(s.substr(start));
+
+        return tokens;
+    }
 };
