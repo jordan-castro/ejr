@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include "ejr.hpp"
+#include <include/ejr.hpp>
 
 using namespace std;
 using namespace ejr;

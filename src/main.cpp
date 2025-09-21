@@ -15,6 +15,11 @@ int main() {
         return filesystem::current_path().string();
     });
 
+    easyjsr->register_callback("print", [](const JSArgs& args) -> JSArg {
+        cout << jsarg_to_str(args[0]) << endl;
+        return JSArgNull{};
+    });
+
     easyjsr->register_module("ejr:john_cena", vector<JSMethod>{
         JSMethod("test", [](const JSArgs& args) -> JSArg {
             return "AND HIS NAME IS JOHN CENA!";
@@ -26,7 +31,7 @@ int main() {
         cout << "Could not load file: " << result.msg << endl;
     }
     try {
-    auto val = easyjsr->eval_module(result.result, "run.js");
+    auto val = easyjsr->eval_script(result.result, "run.js");
     cout << easyjsr->val_to_string(val) << endl;
     } catch (const std::exception& e) {
         cout << e.what() << endl;

@@ -19,4 +19,7 @@
 - ~~Add import support~~
 - Potentially add import support in a repl? But node does not so it's prob fine...
 
-- Write C library
+- Fix memory leak when running scripts.
+- ~~Write C library~~
+
+- Tests 

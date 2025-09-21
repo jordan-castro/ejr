@@ -1,4 +1,4 @@
-#include "ejr_c_api.h"
+#include <include/ejr.h>
 #include <include/ejr.hpp>
 
 struct EasyJSRHandle {
@@ -132,31 +132,24 @@ ejr::JSArg jsarg_to_ejr(JSArg arg) {
 JSArg ejr_to_jsarg(ejr::JSArg ejr_arg) {
     JSArg arg;
 
-    std::visit([&](auto &&value) -> JSValue {
+    std::visit([&](auto &&value) {
         using T = std::decay_t<decltype(value)>;
         if constexpr (std::is_same_v<T, int>) {
-            arg.type = JSARG_TYPE_INT;
-            arg.value.int_val = value;
+            arg = jsarg_int(value);
         } else if constexpr (std::is_same_v<T, float>) {
-            arg.type = JSARG_TYPE_FLOAT;
-            arg.value.float_val = value;
+            arg = jsarg_float(value);
         } else if constexpr (std::is_same_v<T, double>) {
-            arg.type = JSARG_TYPE_DOUBLE;
-            arg.value.double_val = value;
+            arg = jsarg_double(value);
         } else if constexpr (std::is_same_v<T, bool>) {
-            arg.type = JSARG_TYPE_BOOL;
-            arg.value.bool_val = value;
+            arg = jsarg_bool(value);
         } else if constexpr (std::is_same_v<T, std::string>) {
-            arg.type = JSARG_TYPE_STRING;
             char* c_str = new char[value.size() + 1];
-            std::memcpy(c_str, value.c_str(), value.sizE() + 1);
-            arg.value.str_val = c_str;
+            std::memcpy(c_str, value.c_str(), value.size() + 1);
+            jsarg_str(c_str);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            arg.type = JSARG_TYPE_INT64_T;
-            arg.value.int64_t_val = value;
+            jsarg_int64t(value);
         } else if constexpr (std::is_same_v<T, uint32_t>) {
-            arg.type = JSARG_TYPE_UINT32_T;
-            arg.value.uint32_t_val = value;
+            jsarg_uint32t(value);
         }
         else {
             arg.type = JSARG_TYPE_NULL; 
@@ -221,8 +214,16 @@ extern "C" {
     JSArg jsarg_uint32t(uint32_t value) {
         JSArg arg;
         arg.type = JSARG_TYPE_UINT32_T;
-        arg.value.uint32_t_val;
+        arg.value.uint32_t_val = value;
 
+        return arg;
+    }
+
+    JSArg jsarg_bool(bool value) {
+        JSArg arg;
+        arg.type = JSARG_TYPE_BOOL;
+        arg.value.bool_val = value;
+        
         return arg;
     }
 
@@ -230,6 +231,7 @@ extern "C" {
         JSArg arg;
         arg.type = JSARG_TYPE_C_ARRAY;
         arg.value.c_array_val.count = count;
+        arg.value.c_array_val.items = new JSArg[count];
 
         return arg;
     }
@@ -291,6 +293,33 @@ extern "C" {
         jsvad->free(handle->instance);
 
         delete jsvad;
+    }
+
+    void jsarg_free(JSArg* arg) {
+        if (!arg) {
+            return;
+        } 
+
+        if (arg->type == JSARG_TYPE_STRING) {
+            delete[] arg->value.str_val;
+        }
+
+        if (arg->type == JSARG_TYPE_C_ARRAY) {
+            // Conirm ptr still alive
+            if (!arg->value.c_array_val.items) {
+                return;
+            }
+
+            for (size_t i = 0; i < arg->value.c_array_val.count; ++i) {
+                jsarg_free(&arg->value.c_array_val.items[i]);
+            }
+            delete[] arg->value.c_array_val.items;
+            arg->value.c_array_val.items = nullptr;
+            arg->value.c_array_val.count = 0;
+        }
+
+        // Change to NULL type.
+        arg->type = JSARG_TYPE_NULL;
     }
 
     // EasyJSR specific

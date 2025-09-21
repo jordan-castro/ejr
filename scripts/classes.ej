@@ -15,6 +15,12 @@ class Test : [A, B] {
     }
 }
 
+class Test extends BMixin(A) {
+    constructor(v1, v2) {
+        super(v1, v2);
+    }
+}
+
 x = new Test(1,2)
 x.update(102.0)
 

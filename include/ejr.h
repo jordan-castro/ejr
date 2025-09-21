@@ -62,6 +62,11 @@ typedef JSArg (*C_Callback)(const JSArg* args, size_t arg_count);
 /**
  * @brief C version of JSMethod
  */
+typedef struct JSMethod JSMethod;
+
+/**
+ * @brief C version of JSMethod
+ */
 struct JSMethod {
     const char* name;
     C_Callback cb;
@@ -138,7 +143,7 @@ JSArg jsarg_uint32t(uint32_t value);
 /**
  * @brief Create a C-Array JSArg.
  * 
- * @param value The size of the array
+ * @param count The size of the array
  * 
  * @return JSArg
  */
@@ -150,6 +155,15 @@ JSArg jsarg_carray(size_t count);
  * @return JSArg
  */
 JSArg jsarg_null();
+
+/**
+ * @brief Create a bool JSArg.
+ * 
+ * @param value The bool
+ * 
+ * @return JSArg
+ */
+JSArg jsarg_bool(bool value);
 
 /**
  * @brief Add a JSArg value to a array.
@@ -172,6 +186,13 @@ void ejr_free(EasyJSRHandle* handle);
  */
 void jsvad_free(JSValueAD* jsvad, EasyJSRHandle* handle);
 
+/**
+ * @brief Free a JSArg.
+ * 
+ * @param arg A pointer to the JSArg to free.
+ * 
+ * This only works for STRINGS and ARRAYS.
+ */
 void jsarg_free(JSArg* arg);
 
 // EasyJSR specific
