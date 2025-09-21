@@ -32,7 +32,8 @@ typedef enum {
     JSARG_TYPE_BOOL,
     JSARG_TYPE_INT64_T,
     JSARG_TYPE_UINT32_T,
-    JSARG_TYPE_C_ARRAY
+    JSARG_TYPE_C_ARRAY,
+    JSARG_TYPE_NULL,
 } JSArgType;
 typedef struct JSArg JSArg;
 /**
@@ -144,6 +145,13 @@ JSArg jsarg_uint32t(uint32_t value);
 JSArg jsarg_carray(size_t count);
 
 /**
+ * @brief Create a null JSArg.
+ * 
+ * @return JSArg
+ */
+JSArg jsarg_null();
+
+/**
  * @brief Add a JSArg value to a array.
  * 
  * @param arg Pointer to the array.
@@ -213,18 +221,7 @@ int ejr_eval_function(JSValueAD* jsvad, EasyJSRHandle* handle, const char* fn_na
  * 
  * @return The c_string.
  */
-const char * ejr_val_to_string(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id);
-
-/**
- * @brief Convert a JSValue into a c_string.
- * 
- * @param jsvad The JSValueAD for this runtime.
- * @param handle the easyjsr runtime.
- * @param name The name of the JSValue to be get.
- * 
- * @return the id of the resulted JSValue
- */
-int ejr_get_from_global(JSValueAD* jsvad, EasyJSRHandle* handle, const char* name);
+char * ejr_val_to_string(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id);
 
 /**
  * @brief Evaluate a JS function in the current scope/runtime on a class or object.
@@ -251,6 +248,16 @@ int ejr_eval_class_function(JSValueAD* jsvad, EasyJSRHandle* handle, int value_i
  * @return the Id of the resulted value.
  */
 int ejr_get_property_from(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id, const char* property);
+/**
+ * @brief Get a property from Global scope.
+ * 
+ * @param jsvad The JSValueAD for this runtime.
+ * @param handle the easyjsr runtime.
+ * @param property The property name.
+ * 
+ * @return the Id of the resulted value.
+ */
+int ejr_get_from_global(JSValueAD* jsvad, EasyJSRHandle* handle, const char* property);
 
 /**
  * @brief Register a callback in JS.
@@ -274,10 +281,9 @@ void ejr_register_module(EasyJSRHandle* handle, const char* module_name, JSMetho
 /**
  * @brief Free a C string.
  * 
- * @param handle The easyjsr runtime.
  * @param c_string The c string to free.
  */
-void ejr_free_string(EasyJSRHandle* handle, const char* c_string);
+void ejr_free_string(char* c_string);
 
 // JSValueAD specific
 /**

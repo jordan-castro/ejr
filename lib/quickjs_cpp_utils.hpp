@@ -11,6 +11,14 @@ inline JSValue js_undefined() {
     v.u.int32 = 0;
     return v;
 }
+
+inline JSValue js_null() {
+    JSValue v;
+    v.tag = JS_TAG_NULL;
+    v.u.int32 = 0;
+    return v;
+}
+
 inline JSValue js_exception() {
     JSValue v;
     v.tag = JS_TAG_EXCEPTION;

@@ -15,8 +15,11 @@
 namespace ejr
 {
     // Types
+    /// @brief a null representation for JSArg.
+    struct JSArgNull {};
+
     /// @brief A JSArg for dynamic typing.
-    using _JSArg = std::variant<int, double, float, long, std::string, bool, int64_t, uint32_t>;
+    using _JSArg = std::variant<int, double, float, long, std::string, bool, int64_t, uint32_t, JSArgNull>;
     /// @brief A JSArgs type
     using JSArg = std::variant<_JSArg, std::vector<_JSArg>>;
     /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg 
