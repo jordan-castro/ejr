@@ -43,6 +43,12 @@ void include_console_std(EasyJSR& rt) {
     rt.register_callback("___error", ___error);
     rt.register_callback("___warn", ___warn);
 
-    JSValue val = rt.eval_script(console_contents, "<script>");
+    JSValue val = rt.eval_script(R"(
+        globalThis.console = {
+            log:   (...args) => ___print(...args),
+            error: (...args) => ___error(...args),
+            warn:  (...args) => ___warn(...args),
+        };
+    )", "<script>");
     rt.free_jsval(val);
 }
