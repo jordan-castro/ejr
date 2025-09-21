@@ -2,16 +2,13 @@
 #include <string>
 #include <include/ejr.hpp>
 #include <memory>
-#include <stdlib/ejr_console.hpp>
 
 using namespace std;
 using namespace ejr;
 
 int main() {
-    unique_ptr<EasyJSR> easyjsr = make_unique<EasyJSR>();
+    unique_ptr<EasyJSR> easyjsr = make_unique<EasyJSR>(); 
 
-    include_console_std(*easyjsr);
- 
     while (1) {
         string input;
         cout << ">> ";
@@ -19,10 +16,10 @@ int main() {
 
         if (input == "q") {
             break;
-        }
+        } 
 
         // Run JS and get as string
-        auto val = easyjsr->run_script(input, "repl.js");
+        auto val = easyjsr->eval_script(input, "repl.js");
         try {
         cout << easyjsr->val_to_string(val) << endl;
         } catch (...) {

@@ -2,7 +2,6 @@
 #include <string>
 #include <include/ejr.hpp>
 #include <memory>
-#include <stdlib/ejr_console.hpp>
 #include <filesystem>
 #include "utils.hpp"
 
@@ -11,9 +10,6 @@ using namespace ejr;
 
 int main() {
     unique_ptr<EasyJSR> easyjsr = make_unique<EasyJSR>();
-
-    // REPL test
-    include_console_std(*easyjsr);
 
     easyjsr->register_callback("get_cwd", [](const JSArgs& args) -> JSArg {
         return filesystem::current_path().string();

@@ -1,7 +1,6 @@
 #include <include/ejr.hpp>
 #include <lib/quickjs_cpp_utils.hpp>
 #include <utility>
-#include <js/include_console.h>
 #include "utils.hpp"
 
 using namespace ejr;
