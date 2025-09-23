@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "ejr.h"
 
-JSArg js_print(const JSArg* args, size_t argc) {
+JSArg js_print(const JSArg* args, size_t argc, void* opaque) {
     if (args[0].type == JSARG_TYPE_STRING && args[0].value.str_val) {
         printf("Print from C: %s\n", args[0].value.str_val);
         // Free your JSArg if you aren't going to return it.
@@ -14,7 +14,7 @@ JSArg js_print(const JSArg* args, size_t argc) {
     return jsarg_null();
 }
 
-JSArg js_test_add(const JSArg* args, size_t argc) {
+JSArg js_test_add(const JSArg* args, size_t argc, void* opaque) {
     int a = args[0].value.int_val;
     int b = args[1].value.int_val;
 
@@ -51,16 +51,17 @@ int main() {
     jsvad_free_jsvalue(jsvad, ejr, value_id);
 
     // Register callback to print
-    ejr_register_callback(ejr, "print", js_print);
+    ejr_register_callback(ejr, "print", js_print, NULL);
     // Register module with test
     JSMethod methods[1];
     methods[0].name = "add";
     methods[0].cb = js_test_add;
+    methods[0].opaque = NULL;
     char* module_name = "ejr:test";
     ejr_register_module(ejr, module_name, methods, 1);
 
     // Ok run a module...
-    char* module_script = "import {add} from 'ejr:test';\nprint(add(1,2));";
+    char* module_script = "import {add} from 'ejr:test';\nprint(add(1,2).toString());";
     char* module_file = "<mod_test>";
     int module_value = ejr_eval_module(jsvad, ejr, module_script, module_file);
 

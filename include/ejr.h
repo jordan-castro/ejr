@@ -57,7 +57,7 @@ struct JSArg {
     } value;
 };
 // C Callback wrapper for DynCallback
-typedef JSArg (*C_Callback)(const JSArg* args, size_t arg_count);
+typedef JSArg (*C_Callback)(const JSArg* args, size_t arg_count, void* opaque);
 
 /**
  * @brief C version of JSMethod
@@ -70,6 +70,7 @@ typedef struct JSMethod JSMethod;
 struct JSMethod {
     const char* name;
     C_Callback cb;
+    void* opaque;
 };
 
 // Constructors
@@ -286,8 +287,9 @@ int ejr_get_from_global(JSValueAD* jsvad, EasyJSRHandle* handle, const char* pro
  * @param handle The easyjsr runtime.
  * @param fn_name Name to give the callback.
  * @param cb The actual C callback.
+ * @param opaque Opaque user data.
  */
-void ejr_register_callback(EasyJSRHandle* handle, const char* fn_name, C_Callback cb);
+void ejr_register_callback(EasyJSRHandle* handle, const char* fn_name, C_Callback cb, void* opaque);
 
 /**
  * @brief Register a module in JS.

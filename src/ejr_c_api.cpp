@@ -132,28 +132,39 @@ ejr::JSArg jsarg_to_ejr(JSArg arg) {
 JSArg ejr_to_jsarg(ejr::JSArg ejr_arg) {
     JSArg arg;
 
-    std::visit([&](auto &&value) {
-        using T = std::decay_t<decltype(value)>;
-        if constexpr (std::is_same_v<T, int>) {
-            arg = jsarg_int(value);
-        } else if constexpr (std::is_same_v<T, float>) {
-            arg = jsarg_float(value);
-        } else if constexpr (std::is_same_v<T, double>) {
-            arg = jsarg_double(value);
-        } else if constexpr (std::is_same_v<T, bool>) {
-            arg = jsarg_bool(value);
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            char* c_str = new char[value.size() + 1];
-            std::memcpy(c_str, value.c_str(), value.size() + 1);
-            jsarg_str(c_str);
-        } else if constexpr (std::is_same_v<T, int64_t>) {
-            jsarg_int64t(value);
-        } else if constexpr (std::is_same_v<T, uint32_t>) {
-            jsarg_uint32t(value);
+    std::visit([&](auto &&parent) {
+        using pT = std::decay_t<decltype(parent)>;
+
+        if constexpr (std::is_same_v<pT, ejr::_JSArg>) {
+            std::visit([&](auto &&value) {
+                using T = std::decay_t<decltype(value)>;
+                if constexpr (std::is_same_v<T, int>) {
+                    arg = jsarg_int(value);
+                } else if constexpr (std::is_same_v<T, float>) {
+                    arg = jsarg_float(value);
+                } else if constexpr (std::is_same_v<T, double>) {
+                    arg = jsarg_double(value);
+                } else if constexpr (std::is_same_v<T, bool>) {
+                    arg = jsarg_bool(value);
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                    char* c_str = new char[value.size() + 1];
+                    std::memcpy(c_str, value.c_str(), value.size() + 1);
+                    arg = jsarg_str(c_str);
+                } else if constexpr (std::is_same_v<T, int64_t>) {
+                    arg = jsarg_int64t(value);
+                } else if constexpr (std::is_same_v<T, uint32_t>) {
+                    arg = jsarg_uint32t(value);
+                }
+                else {
+                    arg.type = JSARG_TYPE_NULL; 
+                } 
+            }, parent);
+        } else if constexpr (std::is_same_v<pT, std::vector<ejr::_JSArg>>) {
+            arg = jsarg_carray(parent.size());
+            for (size_t i = 0; i < parent.size(); ++i) {
+                jsarg_add_value_to_c_array(&arg, ejr_to_jsarg(parent[i]));
+            }
         }
-        else {
-            arg.type = JSARG_TYPE_NULL; 
-        } 
     }, ejr_arg);
 
     return arg;
@@ -458,7 +469,7 @@ extern "C" {
         return jsvad->add_value(value);
     }
 
-    void ejr_register_callback(EasyJSRHandle* handle, const char* fn_name, C_Callback cb) {
+    void ejr_register_callback(EasyJSRHandle* handle, const char* fn_name, C_Callback cb, void* opaque) {
         if (!valid_ptrs(std::vector<void*>{handle, handle->instance})) {
             return;
         }
@@ -466,7 +477,7 @@ extern "C" {
         // fn_name string
         std::string fn_name_str = std::string(fn_name);
 
-        auto wrapper = [cb](const ejr::JSArgs& args) -> ejr::JSArg {
+        auto wrapper = [cb, opaque](const ejr::JSArgs& args) -> ejr::JSArg {
             // Convert C++ -> C
             std::vector<JSArg> c_args;
             c_args.reserve(args.size());
@@ -475,7 +486,7 @@ extern "C" {
             }
 
             // Call raw C callback
-            JSArg result = cb(c_args.data(), c_args.size());
+            JSArg result = cb(c_args.data(), c_args.size(), opaque);
 
             // Convert C -> C++
             return jsarg_to_ejr(result);
@@ -501,7 +512,8 @@ extern "C" {
         for (size_t i = 0; i < method_count; ++i) {
             JSMethod method = methods[i];
             C_Callback cb = method.cb;
-            auto wrapper = [cb](const ejr::JSArgs& args) -> ejr::JSArg {
+            void* opaque = method.opaque;
+            auto wrapper = [cb, opaque](const ejr::JSArgs& args) -> ejr::JSArg {
                 // Convert C++ -> C
                 std::vector<JSArg> c_args;
                 c_args.reserve(args.size());
@@ -510,7 +522,7 @@ extern "C" {
                 }
 
                 // Call raw C callback
-                JSArg result = cb(c_args.data(), c_args.size());
+                JSArg result = cb(c_args.data(), c_args.size(), opaque);
 
                 // Convert C -> C++
                 return jsarg_to_ejr(result);

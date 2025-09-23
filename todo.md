@@ -14,12 +14,14 @@
 - ~~Macro for loading custom JS files to include at startup.~~
 - ~~advanced error logging~~ (Decent enough with clean_js_value for now)...
 - add support for all JS Values in _JSArg
-- ~~Add globalThis.console support~~
-- Add IO support (better than NODE please!!!)
 - ~~Add import support~~
 - Potentially add import support in a repl? But node does not so it's prob fine...
 
-- Fix memory leak when running scripts.
+- ~~Fix memory leak when running scripts.~~
+- Should I add a GC?
 - ~~Write C library~~
+
+- Allow for custom module loaders.
+- Pass in Context opaque
 
 - Tests 
