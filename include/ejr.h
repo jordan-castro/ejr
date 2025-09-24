@@ -17,11 +17,6 @@ extern "C" {
 typedef struct EasyJSRHandle EasyJSRHandle;
 
 /**
- * @brief our JSValue allocator/deallocator
- */
-typedef struct JSValueAD JSValueAD;
-
-/**
  * @brief C version of our JSArg union
  */
 typedef enum {
@@ -56,8 +51,15 @@ struct JSArg {
         } c_array_val;
     } value;
 };
-// C Callback wrapper for DynCallback
-typedef JSArg (*C_Callback)(const JSArg* args, size_t arg_count, void* opaque);
+/**
+ * @brief C Callback wrapper for DynCallback 
+ */
+typedef JSArg (*C_Callback)(JSArg* args, size_t arg_count, void* opaque);
+
+/**
+ * @brief C wrapper for FileLoaderFn
+ */
+typedef char* (*C_FileLoaderFn)(const char* file_path);
 
 /**
  * @brief C version of JSMethod
@@ -81,11 +83,6 @@ struct JSMethod {
  * It will have it's own callables, modules, classes, etc. It is all sandboxed within itself.
  */
 EasyJSRHandle* ejr_new();
-
-/**
- * @brief Create a new JSValueAD.
- */
-JSValueAD* jsvad_new();
 
 /**
  * @brief Create a int JSArg.
@@ -148,7 +145,7 @@ JSArg jsarg_uint32t(uint32_t value);
  * 
  * @return JSArg
  */
-JSArg jsarg_carray(size_t count);
+JSArg* jsarg_carray(size_t count);
 
 /**
  * @brief Create a null JSArg.
@@ -174,6 +171,16 @@ JSArg jsarg_bool(bool value);
  */
 void jsarg_add_value_to_c_array(JSArg* arg, JSArg value);
 
+/**
+ * @brief Get a JSArg from a JSValue(int)
+ * 
+ * @param handle the Easyjs runtime
+ * @param value the JSValue(int)
+ * 
+ * @return JSArg
+ */
+JSArg jsarg_from_jsvalue(EasyJSRHandle* handle, int value);
+
 // Deleters
 /**
  * @brief Free a easyjs runtime
@@ -181,50 +188,47 @@ void jsarg_add_value_to_c_array(JSArg* arg, JSArg value);
 void ejr_free(EasyJSRHandle* handle);
 
 /**
- * @brief Free a JSValueAD
- * 
- * @param handle The associate easyjsr runtime.
- */
-void jsvad_free(JSValueAD* jsvad, EasyJSRHandle* handle);
-
-/**
  * @brief Free a JSArg.
  * 
  * @param arg A pointer to the JSArg to free.
- * 
- * This only works for STRINGS and ARRAYS.
  */
 void jsarg_free(JSArg* arg);
 
 // EasyJSR specific
 /**
+ * @brief Set the file_loader function.
+ * 
+ * @param handle the easyjsr runtime.
+ * @param fn The file loader function.
+ * 
+ */
+void ejr_set_file_loader(EasyJSRHandle* handle, C_FileLoaderFn fn);
+
+/**
  * @brief Evaluate a JS script at the global level.
  * 
- * @param jsvad The JSValueAD for this runtime.
  * @param handle the easyjsr runtime.
  * @param js The JS code.
  * @param file_name The name of the file.
  * 
  * @return The id of the created JSValue.
  */
-int ejr_eval_script(JSValueAD* jsvad, EasyJSRHandle* handle, const char* js, const char* file_name);
+int ejr_eval_script(EasyJSRHandle* handle, const char* js, const char* file_name);
 
 /**
  * @brief Evaluate a JS script as a module level.
  * 
- * @param jsvad The JSValueAD for this runtime.
  * @param handle the easyjsr runtime.
  * @param js The JS code.
  * @param file_name The name of the file.
  * 
  * @return The id of the created JSValue.
  */
-int ejr_eval_module(JSValueAD* jsvad, EasyJSRHandle* handle, const char* js, const char* file_name);
+int ejr_eval_module(EasyJSRHandle* handle, const char* js, const char* file_name);
 
 /**
  * @brief Evaluate a JS function in the current scope/runtime.
  * 
- * @param jsvad The JSValueAD for this runtime.
  * @param handle the easyjsr runtime.
  * @param fn_name The JS function name.
  * @param args The args to pass into the function.
@@ -232,23 +236,21 @@ int ejr_eval_module(JSValueAD* jsvad, EasyJSRHandle* handle, const char* js, con
  * 
  * @return The id of the resulted JSValue.
  */
-int ejr_eval_function(JSValueAD* jsvad, EasyJSRHandle* handle, const char* fn_name, JSArg* args, size_t arg_count);
+int ejr_eval_function(EasyJSRHandle* handle, const char* fn_name, JSArg* args, size_t arg_count);
 
 /**
  * @brief Convert a JSValue into a c_string.
  * 
- * @param jsvad The JSValueAD for this runtime.
  * @param handle the easyjsr runtime.
  * @param value_id The id of the JSValue to be converted.
  * 
  * @return The c_string.
  */
-char * ejr_val_to_string(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id);
+char * ejr_val_to_string(EasyJSRHandle* handle, int value_id);
 
 /**
  * @brief Evaluate a JS function in the current scope/runtime on a class or object.
  * 
- * @param jsvad The JSValueAD for this runtime.
  * @param handle the easyjsr runtime.
  * @param value_id The objects/classes id in jsvad
  * @param fn_name The JS function name.
@@ -257,29 +259,27 @@ char * ejr_val_to_string(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id);
  * 
  * @return The id of the resulted JSValue.
  */
-int ejr_eval_class_function(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id, const char* fn_name, JSArg* args, size_t arg_count);
+int ejr_eval_class_function(EasyJSRHandle* handle, int value_id, const char* fn_name, JSArg* args, size_t arg_count);
 
 /**
  * @brief Get a property from a object.
  * 
- * @param jsvad The JSValueAD for this runtime.
  * @param handle the easyjsr runtime.
  * @param value_id The objects/classes id in jsvad
  * @param property The property name.
  * 
  * @return the Id of the resulted value.
  */
-int ejr_get_property_from(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id, const char* property);
+int ejr_get_property_from(EasyJSRHandle* handle, int value_id, const char* property);
 /**
  * @brief Get a property from Global scope.
  * 
- * @param jsvad The JSValueAD for this runtime.
  * @param handle the easyjsr runtime.
  * @param property The property name.
  * 
  * @return the Id of the resulted value.
  */
-int ejr_get_from_global(JSValueAD* jsvad, EasyJSRHandle* handle, const char* property);
+int ejr_get_from_global(EasyJSRHandle* handle, const char* property);
 
 /**
  * @brief Register a callback in JS.
@@ -308,15 +308,13 @@ void ejr_register_module(EasyJSRHandle* handle, const char* module_name, JSMetho
  */
 void ejr_free_string(char* c_string);
 
-// JSValueAD specific
 /**
  * @brief Free a JSValue within the JSValueAD.
  * 
- * @param jsvad The JSValueAD pointer.
  * @param handle The easyjsr runtime associated.
  * @param value_id id of the value to free.
  */
-void jsvad_free_jsvalue(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id);
+void ejr_free_jsvalue(EasyJSRHandle* handle, int value_id);
 
 #ifdef __cplusplus
 }

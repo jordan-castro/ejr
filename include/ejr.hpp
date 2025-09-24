@@ -26,6 +26,8 @@ namespace ejr
     using DynCallback = std::function<JSArg(const std::vector<JSArg>&)>;
     /// @brief Shorthand for std::vector<JSArg>
     using JSArgs = std::vector<JSArg>;
+    /// @brief Type for file loader function
+    using FileLoaderFn = std::function<std::string(const std::string&)>;
 
     /// @brief RAII JSValue
     /// Use this inteligently, sometimes you want to free the JSValue manually.
@@ -123,12 +125,24 @@ namespace ejr
         /// @brief Unmangled names of methods with their JSValue. 
         std::unordered_map<std::string, std::vector<std::tuple<std::string, JSValue>>> methods_by_module;
 
+        /// @brief internal file loader. Set via set_file_loader
+        FileLoaderFn file_loader_fn;
+
     public:
         EasyJSR();
         ~EasyJSR();
 
         /// @brief initiate a module statically
         static int module_init(JSContext*ctx, JSModuleDef*m);
+
+        /// @brief Set a file loader function.
+        void set_file_loader(FileLoaderFn func);
+
+        /// @brief Convert a JSValue into a JSArg.
+        JSArg jsvalue_to_jsarg(JSValue value, bool force_free);
+
+        /// @brief a File Loader.
+        std::string load_file(const std::string& file_path);
 
         /// @brief registered Modules
         std::unordered_map<std::string, JSModuleDef*> modules;

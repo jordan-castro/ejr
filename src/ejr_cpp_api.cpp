@@ -19,15 +19,12 @@ static JSModuleDef *js_module_loader(JSContext *ctx, const char *module_name, vo
     }
     // TODO: .json support
 
-    // Open JS file
-    EJRError<string> result = load_js_file(string(module_name));
-    if (result.has_error)
-    {
-        cout << "Error loading file: " << result.msg << endl;
-        // TODO: log the error
+    // Load the JS file
+    string contents = ejsr->load_file(string(module_name));
+    // a size of 0 means that there was a error
+    if (contents.size() == 0) {
         return nullptr;
     }
-    string contents = result.result;
 
     // Compile the module
     JSValue func_val;
@@ -232,6 +229,12 @@ EasyJSR::EasyJSR()
         // We could not get a runtime
         return;
     }
+
+    // Default file loader
+    auto flfn = [](const string& val) -> string {
+        return "";
+    };
+    this->file_loader_fn = flfn;
 
     // Setup module loader
     JS_SetModuleLoaderFunc(this->runtime, nullptr, js_module_loader, static_cast<void *>(this));
@@ -514,4 +517,18 @@ JSValue EasyJSR::create_trampoline(const string &cb_name, DynCallback cb)
     JSValue fn = JS_NewCFunctionData(this->ctx, trampoline, 0, 0, 2, func_data);
 
     return fn;
+}
+
+void EasyJSR::set_file_loader(FileLoaderFn loader_fn) {
+    // Just set and viola
+    this->file_loader_fn = std::move(loader_fn);
+}
+
+string EasyJSR::load_file(const string& file_path) {
+    // Call file_loader
+    return this->file_loader_fn(file_path);
+}
+
+JSArg EasyJSR::jsvalue_to_jsarg(JSValue value, bool force_free) {
+    return from_js(this->ctx, value, force_free);
 }

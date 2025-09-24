@@ -1,13 +1,6 @@
 #include <include/ejr.h>
 #include <include/ejr.hpp>
 
-struct EasyJSRHandle {
-    /// @brief the EasyJSR instance.
-    ejr::EasyJSR* instance;
-
-    EasyJSRHandle(ejr::EasyJSR* instance) : instance(instance) {}
-};
-
 struct JSValueAD {
     /// @brief id -> value map
     std::unordered_map<int, JSValue> id_to_value;
@@ -63,6 +56,16 @@ struct JSValueAD {
         int next_id = 0;
 };
 
+struct EasyJSRHandle {
+    /// @brief the EasyJSR instance.
+    ejr::EasyJSR* instance;
+
+    /// @brief the JSVAD
+    JSValueAD* jsvad;
+
+    EasyJSRHandle(ejr::EasyJSR* instance, JSValueAD* jsvad) : instance(instance), jsvad(jsvad) {}
+};
+
 /// @brief Make sure all pointers are valid.
 /// @param ptrs pointers
 /// @return true if valid, false if not.
@@ -75,8 +78,6 @@ bool valid_ptrs(const std::vector<void*>& ptrs) {
 
     return true;
 }
-
-
 
 /// @brief Convert JSArg to ejr::JSArg
 /// @param arg the JSArg
@@ -160,7 +161,7 @@ JSArg ejr_to_jsarg(ejr::JSArg ejr_arg) {
                 } 
             }, parent);
         } else if constexpr (std::is_same_v<pT, std::vector<ejr::_JSArg>>) {
-            arg = jsarg_carray(parent.size());
+            arg = *jsarg_carray(parent.size());
             for (size_t i = 0; i < parent.size(); ++i) {
                 jsarg_add_value_to_c_array(&arg, ejr_to_jsarg(parent[i]));
             }
@@ -174,13 +175,9 @@ extern "C" {
     // Constructors
     EasyJSRHandle* ejr_new() {
         ejr::EasyJSR* instance = new ejr::EasyJSR();
-        EasyJSRHandle* handle = new EasyJSRHandle(instance);
-        return handle;
-    }
-
-    JSValueAD* jsvad_new() {
         JSValueAD* jsvad = new JSValueAD();
-        return jsvad;
+        EasyJSRHandle* handle = new EasyJSRHandle(instance, jsvad);
+        return handle;
     }
 
     JSArg jsarg_int(int value) {
@@ -238,11 +235,11 @@ extern "C" {
         return arg;
     }
 
-    JSArg jsarg_carray(size_t count) {
-        JSArg arg;
-        arg.type = JSARG_TYPE_C_ARRAY;
-        arg.value.c_array_val.count = count;
-        arg.value.c_array_val.items = new JSArg[count];
+    JSArg* jsarg_carray(size_t count) {
+        JSArg* arg = new JSArg;
+        arg->type = JSARG_TYPE_C_ARRAY;
+        arg->value.c_array_val.count = count;
+        arg->value.c_array_val.items = new JSArg[count];
 
         return arg;
     }
@@ -283,6 +280,19 @@ extern "C" {
         // TODO: some kind of error log
     }
 
+    JSArg jsarg_from_jsvalue(EasyJSRHandle* handle, int value) {
+        if (!valid_ptrs(std::vector<void*>{handle, handle->jsvad, handle->instance}) || value < 0) {
+            return jsarg_null();
+        }
+
+        JSValue jsvalue = handle->jsvad->get(value);
+
+        // Get the jsarg but also free the JSValue since we ain't finna use it later.
+        ejr::JSArg ejr_arg = handle->instance->jsvalue_to_jsarg(jsvalue, true);
+
+        return ejr_to_jsarg(ejr_arg);
+    }
+
     // Deleters
     void ejr_free(EasyJSRHandle* handle) {
         if (!handle) {
@@ -293,17 +303,11 @@ extern "C" {
             delete handle->instance;
         }
 
-        delete handle;
-    }
-
-    void jsvad_free(JSValueAD* jsvad, EasyJSRHandle* handle) {
-        if (!jsvad || !handle || !handle->instance) {
-            return;
+        if (handle->jsvad) {
+            delete handle->jsvad;
         }
 
-        jsvad->free(handle->instance);
-
-        delete jsvad;
+        delete handle;
     }
 
     void jsarg_free(JSArg* arg) {
@@ -327,16 +331,39 @@ extern "C" {
             delete[] arg->value.c_array_val.items;
             arg->value.c_array_val.items = nullptr;
             arg->value.c_array_val.count = 0;
+            delete arg;
+            return;
         }
 
-        // Change to NULL type.
         arg->type = JSARG_TYPE_NULL;
     }
 
     // EasyJSR specific
 
-    int ejr_eval_script(JSValueAD* jsvad, EasyJSRHandle* handle, const char* js, const char* file_name) {
-        if (!valid_ptrs(std::vector<void*>{jsvad, handle, handle->instance})) {
+    void ejr_set_file_loader(EasyJSRHandle* handle, C_FileLoaderFn fn) {
+        if (!valid_ptrs(std::vector<void*>{handle, handle->instance})) {
+            return;
+        }
+
+        auto wrapper = [fn](const std::string& file_path) -> std::string {
+            // Convert C++ -> C
+            const char* file_path_c_str = file_path.c_str();
+
+            // Call raw C
+            char* result = fn(file_path_c_str);
+
+            // Convert C -> C++
+            std::string result_str(result);
+
+            return result_str;
+        };
+
+        // Register in ejr
+        handle->instance->set_file_loader(wrapper);
+    }
+
+    int ejr_eval_script(EasyJSRHandle* handle, const char* js, const char* file_name) {
+        if (!valid_ptrs(std::vector<void*>{handle, handle->jsvad,handle->instance})) {
             return -1;
         }
 
@@ -347,13 +374,13 @@ extern "C" {
         // Call
         JSValue value = handle->instance->eval_script(js_str, file_name_string);
         // Create new result
-        int result = jsvad->add_value(value);
+        int result = handle->jsvad->add_value(value);
         
         return result;
     }
 
-    int ejr_eval_module(JSValueAD* jsvad, EasyJSRHandle* handle, const char* js, const char* file_name) {
-        if (!valid_ptrs(std::vector<void*>{jsvad, handle, handle->instance})) {
+    int ejr_eval_module(EasyJSRHandle* handle, const char* js, const char* file_name) {
+        if (!valid_ptrs(std::vector<void*>{ handle, handle->jsvad, handle->instance})) {
             return -1;
         }
 
@@ -364,11 +391,11 @@ extern "C" {
         // Call
         JSValue value = handle->instance->eval_module(js_str, file_name_str);
 
-        return jsvad->add_value(value);
+        return handle->jsvad->add_value(value);
     }
 
-    int ejr_eval_function(JSValueAD* jsvad, EasyJSRHandle* handle, const char* fn_name, JSArg* args, size_t arg_count) {
-        if (!valid_ptrs(std::vector<void*>{jsvad, handle, handle->instance, args})) {
+    int ejr_eval_function(EasyJSRHandle* handle, const char* fn_name, JSArg* args, size_t arg_count) {
+        if (!valid_ptrs(std::vector<void*>{handle,handle->jsvad, handle->instance, args})) {
             return -1;
         }
 
@@ -387,16 +414,16 @@ extern "C" {
         // Call the function
         JSValue value = handle->instance->eval_function(fn_name_str, ejr_jsargs);
         
-        return jsvad->add_value(value);
+        return handle->jsvad->add_value(value);
     }
 
-    char* ejr_val_to_string(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id) {
-        if (!valid_ptrs(std::vector<void*>{jsvad, handle, handle->instance})) {
+    char* ejr_val_to_string(EasyJSRHandle* handle, int value_id) {
+        if (!valid_ptrs(std::vector<void*>{handle,handle->jsvad, handle->instance})) {
             return nullptr;
         }
 
         // Get our value
-        JSValue value = jsvad->get(value_id);
+        JSValue value = handle->jsvad->get(value_id);
         if (JS_IsUndefined(value)) {
             return nullptr;
         }
@@ -411,15 +438,15 @@ extern "C" {
         return c_str;
     }
 
-    int ejr_eval_class_function(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id, const char* fn_name, JSArg* args, size_t arg_count) {
-        if (!valid_ptrs(std::vector<void*>{jsvad, handle, handle->instance, args})) {
+    int ejr_eval_class_function(EasyJSRHandle* handle, int value_id, const char* fn_name, JSArg* args, size_t arg_count) {
+        if (!valid_ptrs(std::vector<void*>{handle, handle->jsvad, handle->instance, args})) {
             return -1;
         }
 
         // Convert fn_name to string
         std::string fn_name_str = std::string(fn_name);
         // Get JSValue from jsvad
-        JSValue object = jsvad->get(value_id);
+        JSValue object = handle->jsvad->get(value_id);
         if (JS_IsUndefined(object)) {
             return -1;
         }
@@ -434,29 +461,29 @@ extern "C" {
         // Call
         JSValue value = handle->instance->eval_class_function(object, fn_name_str, jsargs);
         // Return id
-        return jsvad->add_value(value);
+        return handle->jsvad->add_value(value);
     }
 
-    int ejr_get_property_from(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id, const char* property) {
-        if (!valid_ptrs(std::vector<void*>{jsvad, handle, handle->instance})) {
+    int ejr_get_property_from(EasyJSRHandle* handle, int value_id, const char* property) {
+        if (!valid_ptrs(std::vector<void*>{handle, handle->jsvad, handle->instance})) {
             return -1;
         }
 
         // Convert property to string
         std::string property_str = std::string(property);
         // Get JSValue
-        JSValue object = jsvad->get(value_id);
+        JSValue object = handle->jsvad->get(value_id);
         if (JS_IsUndefined(object)) {
             return -1;
         }
         // Call
         JSValue value = handle->instance->get_property_from(object, property_str);
         // Return id
-        return jsvad->add_value(value);
+        return handle->jsvad->add_value(value);
     }
 
-    int ejr_get_from_global(JSValueAD* jsvad, EasyJSRHandle* handle, const char* property) {
-        if (!valid_ptrs(std::vector<void*>{jsvad, handle, handle->instance})) {
+    int ejr_get_from_global(EasyJSRHandle* handle, const char* property) {
+        if (!valid_ptrs(std::vector<void*>{handle, handle->jsvad, handle->instance})) {
             return -1;
         }
 
@@ -466,7 +493,7 @@ extern "C" {
         // Call
         JSValue value = handle->instance->get_from_global(property_str);
 
-        return jsvad->add_value(value);
+        return handle->jsvad->add_value(value);
     }
 
     void ejr_register_callback(EasyJSRHandle* handle, const char* fn_name, C_Callback cb, void* opaque) {
@@ -489,7 +516,17 @@ extern "C" {
             JSArg result = cb(c_args.data(), c_args.size(), opaque);
 
             // Convert C -> C++
-            return jsarg_to_ejr(result);
+            ejr::JSArg res = jsarg_to_ejr(result);
+        
+            // Free JSArg
+            jsarg_free(&result);
+
+            // Free c_args
+            for (auto& arg : c_args) {
+                jsarg_free(&arg);
+            }
+
+            return res;
         };
 
         // Register in easyjsr
@@ -525,7 +562,15 @@ extern "C" {
                 JSArg result = cb(c_args.data(), c_args.size(), opaque);
 
                 // Convert C -> C++
-                return jsarg_to_ejr(result);
+                ejr::JSArg res = jsarg_to_ejr(result);
+                
+                jsarg_free(&result);
+                // Free c_args
+                for (auto& arg : c_args) {
+                    jsarg_free(&arg);
+                }
+
+                return res;
             };
 
             ejr_methods.push_back(ejr::JSMethod{
@@ -546,11 +591,11 @@ extern "C" {
         delete[] c_string;
     }
 
-    void jsvad_free_jsvalue(JSValueAD* jsvad, EasyJSRHandle* handle, int value_id) {
-        if (!valid_ptrs(std::vector<void*>{jsvad, handle, handle->instance})) {
+    void ejr_free_jsvalue(EasyJSRHandle* handle, int value_id) {
+        if (!valid_ptrs(std::vector<void*>{handle, handle->jsvad, handle->instance})) {
             return;
         }
 
-        jsvad->free_value(handle->instance, value_id);
+        handle->jsvad->free_value(handle->instance, value_id);
     }
 }

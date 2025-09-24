@@ -21,7 +21,15 @@
 - Should I add a GC?
 - ~~Write C library~~
 
-- Allow for custom module loaders.
-- Pass in Context opaque
+- ~~Allow for custom module loaders.~~
+- ~~Pass in Context opaque~~
+- Allow for internal JS only modules.
+    - Technically this can already be done by your custom module loader...
 
-- Tests 
+- Tests
+
+- ~~Fix memory leaks AGAIN!! <- Focop~~
+- maybe add ejr_ to all functions? (Like does the client need to know about JSVAD?)
+
+- Just create a libejr.dll or .a or whatever
+    - i.e. apply static linking for cpp stuff as to not need to include both the c_api and cpp_api.
