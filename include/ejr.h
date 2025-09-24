@@ -46,7 +46,7 @@ struct JSArg {
         uint32_t uint32_t_val;
         int64_t int64_t_val;
         struct {
-            JSArg* items;
+            JSArg** items;
             size_t count;
         } c_array_val;
     } value;
@@ -54,12 +54,12 @@ struct JSArg {
 /**
  * @brief C Callback wrapper for DynCallback 
  */
-typedef JSArg (*C_Callback)(JSArg* args, size_t arg_count, void* opaque);
+typedef JSArg* (*C_Callback)(JSArg** args, size_t arg_count, void* opaque);
 
 /**
  * @brief C wrapper for FileLoaderFn
  */
-typedef char* (*C_FileLoaderFn)(const char* file_path);
+typedef char* (*C_FileLoaderFn)(const char* file_path, void* opaque);
 
 /**
  * @brief C version of JSMethod
@@ -91,7 +91,7 @@ EasyJSRHandle* ejr_new();
  * 
  * @return JSArg
  */
-JSArg jsarg_int(int value);
+JSArg* jsarg_int(int value);
 
 /**
  * @brief Create a const char* JSArg.
@@ -100,7 +100,7 @@ JSArg jsarg_int(int value);
  * 
  * @return JSArg
  */
-JSArg jsarg_str(const char* value);
+JSArg* jsarg_str(const char* value);
 
 /**
  * @brief Create a double JSArg.
@@ -109,7 +109,7 @@ JSArg jsarg_str(const char* value);
  * 
  * @return JSArg
  */
-JSArg jsarg_double(double value);
+JSArg* jsarg_double(double value);
 
 /**
  * @brief Create a float JSArg.
@@ -118,7 +118,7 @@ JSArg jsarg_double(double value);
  * 
  * @return JSArg
  */
-JSArg jsarg_float(float value);
+JSArg* jsarg_float(float value);
 
 /**
  * @brief Create a int64_t JSArg.
@@ -127,7 +127,7 @@ JSArg jsarg_float(float value);
  * 
  * @return JSArg
  */
-JSArg jsarg_int64t(int64_t value);
+JSArg* jsarg_int64t(int64_t value);
 
 /**
  * @brief Create a uint32_t JSArg.
@@ -136,7 +136,7 @@ JSArg jsarg_int64t(int64_t value);
  * 
  * @return JSArg
  */
-JSArg jsarg_uint32t(uint32_t value);
+JSArg* jsarg_uint32t(uint32_t value);
 
 /**
  * @brief Create a C-Array JSArg.
@@ -152,7 +152,7 @@ JSArg* jsarg_carray(size_t count);
  * 
  * @return JSArg
  */
-JSArg jsarg_null();
+JSArg* jsarg_null();
 
 /**
  * @brief Create a bool JSArg.
@@ -161,7 +161,7 @@ JSArg jsarg_null();
  * 
  * @return JSArg
  */
-JSArg jsarg_bool(bool value);
+JSArg* jsarg_bool(bool value);
 
 /**
  * @brief Add a JSArg value to a array.
@@ -169,7 +169,7 @@ JSArg jsarg_bool(bool value);
  * @param arg Pointer to the array.
  * @param value the JSArg value.
  */
-void jsarg_add_value_to_c_array(JSArg* arg, JSArg value);
+void jsarg_add_value_to_c_array(JSArg* arg, JSArg* value);
 
 /**
  * @brief Get a JSArg from a JSValue(int)
@@ -179,7 +179,7 @@ void jsarg_add_value_to_c_array(JSArg* arg, JSArg value);
  * 
  * @return JSArg
  */
-JSArg jsarg_from_jsvalue(EasyJSRHandle* handle, int value);
+JSArg* jsarg_from_jsvalue(EasyJSRHandle* handle, int value);
 
 // Deleters
 /**
@@ -200,9 +200,10 @@ void jsarg_free(JSArg* arg);
  * 
  * @param handle the easyjsr runtime.
  * @param fn The file loader function.
+ * @param opaque some opaque data.
  * 
  */
-void ejr_set_file_loader(EasyJSRHandle* handle, C_FileLoaderFn fn);
+void ejr_set_file_loader(EasyJSRHandle* handle, C_FileLoaderFn fn, void* opaque);
 
 /**
  * @brief Evaluate a JS script at the global level.
@@ -236,7 +237,7 @@ int ejr_eval_module(EasyJSRHandle* handle, const char* js, const char* file_name
  * 
  * @return The id of the resulted JSValue.
  */
-int ejr_eval_function(EasyJSRHandle* handle, const char* fn_name, JSArg* args, size_t arg_count);
+int ejr_eval_function(EasyJSRHandle* handle, const char* fn_name, JSArg** args, size_t arg_count);
 
 /**
  * @brief Convert a JSValue into a c_string.
@@ -259,7 +260,7 @@ char * ejr_val_to_string(EasyJSRHandle* handle, int value_id);
  * 
  * @return The id of the resulted JSValue.
  */
-int ejr_eval_class_function(EasyJSRHandle* handle, int value_id, const char* fn_name, JSArg* args, size_t arg_count);
+int ejr_eval_class_function(EasyJSRHandle* handle, int value_id, const char* fn_name, JSArg** args, size_t arg_count);
 
 /**
  * @brief Get a property from a object.
