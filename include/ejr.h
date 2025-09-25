@@ -272,6 +272,7 @@ int ejr_eval_class_function(EasyJSRHandle* handle, int value_id, const char* fn_
  * @return the Id of the resulted value.
  */
 int ejr_get_property_from(EasyJSRHandle* handle, int value_id, const char* property);
+
 /**
  * @brief Get a property from Global scope.
  * 

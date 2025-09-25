@@ -10,13 +10,19 @@ This exposes easy high level methods:
 - registering modules at runtime
 
 ## Eval of scripts
-```cpp
-unique_ptr<EasyJSR> easyjsr = make_unique<EasyJSR>();
-
-JSValue evaled_script = easyjsr->eval_script("1 + 1");
+```c
+EasyJSRHandle* ejr = ejr_new();
+int value = ejr_eval_script(ejr, "1 + 1", "<test>");
+// See ## Read Values
 ```
 
-## Compiling JS programs into executables
+## Eval of modules
+```c
+EasyJSRHandle* ejr = ejr_new();
+int value = ejr_eval_module(ejr, "1 + 1", "<test>");
+```
+
+<!-- ## Compiling JS programs into executables
 ```cpp
 std::string js_script = "console.log('hello world');";
 bool success = ejr::compile_script(js_script, "test", "windows", "x64");
@@ -24,7 +30,7 @@ bool success = ejr::compile_script(js_script, "test", "windows", "x64");
 if (!success) {
     ejr::log(ejr::last_error());
 }
-```
+``` -->
 
 ## Calling specific functions
 ```cpp
