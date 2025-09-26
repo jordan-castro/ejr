@@ -295,12 +295,14 @@ extern "C" {
             return;
         }
 
-        if (handle->instance) {
-            delete handle->instance;
+        // Free jsvad first
+        if (handle->jsvad) {
+            handle->jsvad->free(handle->instance);
+            delete handle->jsvad;
         }
 
-        if (handle->jsvad) {
-            delete handle->jsvad;
+        if (handle->instance) {
+            delete handle->instance;
         }
 
         delete handle;
