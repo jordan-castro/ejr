@@ -30,5 +30,7 @@
 - ~~Fix memory leaks AGAIN!! <- Focop~~
 - ~~maybe add ejr_ to all functions? (Like does the client need to know about JSVAD?)~~
 
-- Just create a libejr.dll or .a or whatever
-    - i.e. apply static linking for cpp stuff as to not need to include both the c_api and cpp_api.
+- ~~Just create a libejr.dll or .a or whatever~~
+~~    - i.e. apply static linking for cpp stuff as to not need to include both the c_api and cpp_api.~~
+
+- Figure out the Assertion failed: list_empty(&rt->gc_obj_list) error

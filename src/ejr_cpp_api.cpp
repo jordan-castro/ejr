@@ -314,9 +314,9 @@ JSValue EasyJSR::eval_module(const string &js_module, const string &file_name)
 
 void EasyJSR::free_jsval(JSValue value)
 {
-    // Check if value is a JS_Undefined
-    if (JS_IsUndefined(value)) {
-        // No need to free it
+    // Check if value is a JS_Exception
+    if (JS_IsException(value)) {
+        // No need to free it, let QuickJS handle it.
         return;
     }
     JS_FreeValue(this->ctx, value);
