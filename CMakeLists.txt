@@ -57,6 +57,6 @@ endif()
 # ------------------------------
 # 5. Test library
 # ------------------------------
-add_executable(libejr_test tests/test_c_main.c)
+add_executable(libejr_test tests/test_c_repl.c)
 target_include_directories(libejr_test PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(libejr_test PRIVATE ejr)

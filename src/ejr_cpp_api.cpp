@@ -46,7 +46,7 @@ static JSModuleDef *js_module_loader(JSContext *ctx, const char *module_name, vo
 JSValue ejr::__to_js(JSContext *ctx, const _JSArg &arg)
 {
     return std::visit([&](auto &&value) -> JSValue
-                      {
+                      { 
             using T = std::decay_t<decltype(value)>;
             if constexpr (std::is_same_v<T, int>) {
                 return JS_NewInt32(ctx, value);
@@ -66,6 +66,8 @@ JSValue ejr::__to_js(JSContext *ctx, const _JSArg &arg)
                 return JS_NewUint32(ctx, value);
             } else if constexpr (std::is_same_v<T, JSArgNull>) {
                 return js_null();
+            } else if constexpr (std::is_same_v<T, JSArgUndefined>) {
+                return js_undefined();
             }
             else { 
                 return js_undefined();
@@ -364,12 +366,14 @@ string EasyJSR::val_to_string(JSValue value, bool free)
         this->free_jsval(js_string);
     }
 
+    // Always free Exception...
+    if (std::get<1>(cleaned))
+    {
+        this->free_jsval(cleaned_value);
+    }
+
     if (free)
     {
-        if (std::get<1>(cleaned))
-        {
-            this->free_jsval(cleaned_value);
-        }
         this->free_jsval(value);
     }
     string value_string = string(c_string);

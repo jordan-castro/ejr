@@ -251,6 +251,13 @@ extern "C" {
         return arg;
     }
 
+    JSArg* jsarg_undefined() {
+        JSArg* arg = new JSArg();
+        arg->type = JSARG_TYPE_UNDEFINED;
+
+        return arg;
+    }
+
     void jsarg_add_value_to_c_array(JSArg* arg, JSArg* value) {
         if (!arg || !value) {
             return;

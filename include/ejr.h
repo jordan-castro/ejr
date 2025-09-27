@@ -29,6 +29,7 @@ typedef enum {
     JSARG_TYPE_UINT32_T,
     JSARG_TYPE_C_ARRAY,
     JSARG_TYPE_NULL,
+    JSARG_TYPE_UNDEFINED
 } JSArgType;
 typedef struct JSArg JSArg;
 /**
@@ -180,6 +181,13 @@ void jsarg_add_value_to_c_array(JSArg* arg, JSArg* value);
  * @return JSArg
  */
 JSArg* jsarg_from_jsvalue(EasyJSRHandle* handle, int value);
+
+/**
+ * @brief Create a undefined JSArg.
+ *
+ * @return JSArg 
+ */
+JSArg* jsarg_undefined();
 
 // Deleters
 /**
