@@ -296,6 +296,25 @@ extern "C" {
         return ejr_to_jsarg(ejr_arg);
     }
 
+    JSArg** jsarg_make_list(int argc) {
+        return new JSArg*[argc]{nullptr};
+    }
+
+    void jsarg_free_all(JSArg** args, int argc) {
+        if (args == nullptr) {
+            return;
+        }
+
+        for (size_t i = 0; i < argc; ++i) {
+            if (args[i] == nullptr) {
+                continue;
+            }
+            jsarg_free(args[i]);
+        }
+
+        delete[] args;
+    }
+
     // Deleters
     void ejr_free(EasyJSRHandle* handle) {
         if (!handle) {

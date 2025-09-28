@@ -33,4 +33,6 @@
 - ~~Just create a libejr.dll or .a or whatever~~
 ~~    - i.e. apply static linking for cpp stuff as to not need to include both the c_api and cpp_api.~~
 
-- Figure out the Assertion failed: list_empty(&rt->gc_obj_list) error
+- ~~Figure out the Assertion failed: list_empty(&rt->gc_obj_list) error~~
+
+- Add async/await support via ejr_await_promise(handle_ptr, val_id)

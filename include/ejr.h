@@ -202,6 +202,23 @@ void ejr_free(EasyJSRHandle* handle);
  */
 void jsarg_free(JSArg* arg);
 
+/**
+ * @brief Free A JSArg**
+ * 
+ * @param args A pointer of pointers of JSArgs
+ * @param argc Number of pointers.
+ */
+void jsarg_free_all(JSArg** args, int argc);
+
+/**
+ * @brief Create a JSArg**
+ * 
+ * @param argc Count of args this can hold
+ * 
+ * @return a Pointer of Pointers
+ */
+JSArg** jsarg_make_list(int argc);
+
 // EasyJSR specific
 /**
  * @brief Set the file_loader function.

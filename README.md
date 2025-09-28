@@ -33,64 +33,149 @@ if (!success) {
 ``` -->
 
 ## Calling specific functions
-```cpp
-std::string js_script = R("
+```c
+const char* js_script = R("
     function say_hello_to(name) {
         console.log('Hello', name);
     }
-");
+")
+int result = ejr_eval_script(ejr, js_script, "<test>");
+ejr_free_jsvalue(ejr, result);
 
-JSValue result = easyjsr->call("say_hello_to", vector<JSArg>{"Jordan"});
-// Hello Jordan
-easyjsr->free_jsval(result);
+JSArg** args = jsarg_make_list(1);
+const char* name = "Jordan";
+args[0] = jsarg_str(name);
+
+int value_id = ejr_eval_function(ejr, "say_hello_to", args, 1)
+
+if (value_id > -1) {
+    char* val_string = ejr_val_to_string(ejr, value_id);
+    printf("%s", val_string);
+
+    ejr_free_string(val_string);
+}
+jsarg_free_all(args, 1);
 ```
 
 ## Registering callables
-```cpp
-JSArg ___print(const vector<JSArg> args) {
-    string msg = jsarg_as<std::string>(args[0]);
-    cout << msg << endl;
-    return msg; 
+```c
+JSArg* js_print(JSArg** args, size_t argc, void* opaque) {
+    if (argc > 1) {
+        return jsarg_undefined();
+    }
+
+    if (args[0]->type != JSARG_TYPE_STRING) {
+        return jsarg_undefined();
+    }
+
+    printf("%s\n", args[0]->value.str_val);
+
+    return jsarg_undefined();
 }
 
-// Register callback
-easyjsr->register_callback("___print", ___print);
-easyjsr->register_callback("lambda_call", [](const vector<JSArg>& args) -> JSArg {
-    cout << "Testing dayo!" << endl;
-    return 1;
-});
+// Register callback to print
+ejr_register_callback(ejr, "print", js_print, NULL);
 ```
 
 ## Registering classes
-In progress...
+```c
+// CustomMath class
+JSArg* js_add(JSArg** args, size_t argc, void* opaque) {
+    int n1 = args[0]->value.int_val;
+    int n2 = args[0]->value.int_val;
 
-## Registering modules
-```cpp
+    return jsarg_int(n1 + n2);
+}
+JSArg* js_sub(JSArg** args, size_t argc, void* opaque) {
+    int n1 = args[0]->value.int_val;
+    int n2 = args[0]->value.int_val;
 
-easyjsr->register_module("ejr:john_cena", vector<JSMethod>{
-    JSMethod("test", [](const JSArgs& args) -> JSArg {
-        return "AND HIS NAME IS JOHN CENA!";
-    })
-});
+    return jsarg_int(n1 - n2);
+}
+JSArg* js_mul(JSArg** args, size_t argc, void* opaque) {
+    int n1 = args[0]->value.int_val;
+    int n2 = args[0]->value.int_val;
 
-// Now in JS you can do:
-// import {test} from "ejr:john_cena";
-// console.log(test());
+    return jsarg_int(n1 * n2);
+}
+JSArg* js_div(JSArg** args, size_t argc, void* opaque) {
+    int n1 = args[0]->value.int_val;
+    int n2 = args[0]->value.int_val;
+
+    return jsarg_int(n1 / n2);
+}
+JSArg* js_mod(JSArg** args, size_t argc, void* opaque) {
+    int n1 = args[0]->value.int_val;
+    int n2 = args[0]->value.int_val;
+
+    return jsarg_int(n1 % n2);
+}
+
+// Class
+const char* custom_math_class_script = R("
+class CustomMath {
+    add(n1, n2) {
+        return _add(n1,n2);
+    }
+    sub(n1, n2) {
+        return _sub(n1,n2);
+    }
+    mul(n1, n2) {
+        return _mul(n1,n2);
+    }
+    div(n1, n2) {
+        return _div(n1,n2);
+    }
+    mod(n1, n2) {
+        return _mod(n1,n2);
+    }
+}
+
+let cm = new CustomMath();
+let a = 1;
+let b = 2;
+let c = cm.add(a,b); // 3
+
+c
+");
+
+// Then register the callbacks
+ejr_register_callback(ejr, "_add", js_add, NULL);
+ejr_register_callback(ejr, "_sub", js_sub, NULL);
+ejr_register_callback(ejr, "_mul", js_mul, NULL);
+ejr_register_callback(ejr, "_div", js_div, NULL);
+ejr_register_callback(ejr, "_mod", js_mod, NULL);
 ```
 
-Think of the easyjsr runtime like a very very easy way to embed JS into your application. I have used a lot of different options, and while yes they work they 
-kinda fall into three different categories.
+## Registering modules
+```c
 
-- Too low level
-    - Quickjs by itself
-    - V8
-- Too heavy (mb wise)
-    - V8
-    - Deno
-- Too high level
-    - Any FFI wrapper of quickjs
-    - Does not support advanced callbacks
-    - Requires too many types (IN JS???)
+JSArg* js_test_add(JSArg** args, size_t argc, void* opaque) {
+    int a = args[0]->value.int_val;
+    int b = args[1]->value.int_val;
+
+    return jsarg_int(a + b);
+}
+
+// Register module with test
+JSMethod methods[1];
+methods[0].name = "add";
+methods[0].cb = js_test_add;
+methods[0].opaque = NULL;
+char* module_name = "ejr:test";
+ejr_register_module(ejr, module_name, methods, 1);
+
+// Now in JS you can do: 
+// import {add} from "ejr:test";
+// add(1,2);
+```
+
+The ejr (easyjs runtime) is built for embedding a JS runtime in easyjs related projects.
+It currently uses QuickJS as it's engine of sorts, but I'm not married to it. There are some issues with cross platform i.e. MSVC vs GNU.
+But for the time being it fits my use case.
+
+It's specifically a really easy way to embed JS into your application. Its only a few lines and for FFI there is currently only the rust (easyjsr) crate 
+avaiable as open source. But I've also implmeented the ejr library with the Kazoku application.
 
 ## Use case
 The use case of another JS runtime is specifically to be a high level wrapper for easy FFI use in:
