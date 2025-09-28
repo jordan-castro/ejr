@@ -176,16 +176,21 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
         }
         return vec;
     }
-    else if (JS_IsNull(value) || JS_IsUndefined(value))
+    else if (JS_IsNull(value))
     {
         if (force_free)
         {
             JS_FreeValue(ctx, value);
         }
         return std::string("null"); // or maybe return false/0 depending on your design
+    } else if (JS_IsUndefined(value)) {
+        if (force_free) {
+            JS_FreeValue(ctx, value);
+        }
+        return std::string("undefined");
     }
 
-    // Fallback: return undefined as string
+    // Fallback: return [unsupported] as string
     if (force_free)
     {
         JS_FreeValue(ctx, value);
