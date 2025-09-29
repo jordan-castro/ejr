@@ -14,6 +14,9 @@
 
 namespace ejr
 {
+    // Forward decleration
+    struct JSArg;
+
     // Types
     /// @brief a null representation for JSArg.
     struct JSArgNull {};
@@ -21,10 +24,40 @@ namespace ejr
     /// @brief a undefined representation for JSArg.
     struct JSArgUndefined {};
 
+    /// @brief vector<JSArg> repr;
+    using JSArgArray = std::vector<JSArg>;
+
     /// @brief A JSArg for dynamic typing.
-    using _JSArg = std::variant<int, double, float, long, std::string, bool, int64_t, uint32_t, JSArgNull, JSArgUndefined>;
-    /// @brief A JSArgs type
-    using JSArg = std::variant<_JSArg, std::vector<_JSArg>>;
+    struct JSArg {
+        using ValueType = std::variant<
+            int, 
+        double, 
+        float, 
+        long, 
+        std::string, 
+        bool, 
+        int64_t, 
+        uint32_t, 
+        JSArgNull, 
+        JSArgUndefined, 
+        std::shared_ptr<JSArgArray>
+    >;
+
+        ValueType value;
+
+        // Constructors for convenience
+        JSArg(int v) : value(v) {}
+        JSArg(double v) : value(v) {}
+        JSArg(float v) : value(v) {}
+        JSArg(const std::string& v) : value(v) {}
+        JSArg(bool v) : value(v) {}
+        JSArg(uint32_t v) : value(v) {}
+        JSArg(int64_t v) : value(v) {}
+        JSArg(std::nullptr_t) : value(JSArgNull{}) {}
+        JSArg(std::monostate) : value(JSArgUndefined{}) {}
+        JSArg(std::vector<JSArg>&& vec) : value(std::make_shared<JSArgArray>(std::move(vec))) {}
+    };
+
     /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg 
     using DynCallback = std::function<JSArg(const std::vector<JSArg>&)>;
     /// @brief Shorthand for std::vector<JSArg>
@@ -75,12 +108,7 @@ namespace ejr
      */ 
     template<typename T>
     T jsarg_as(const ejr::JSArg& arg) {
-        if (std::holds_alternative<_JSArg>(arg)) {
-            return std::get<T>(std::get<_JSArg>(arg));
-        // } else if (std::holds_alternative<std::vector<_JSArg>(arg)) {
-        //     // TODO: return this jaunt BACK!
-        }
-        throw std::bad_variant_access(); // not a scalar
+        return std::get<T>(arg);
     }
 
     /// @brief get the JSClassID from a type
@@ -94,8 +122,6 @@ namespace ejr
     }
 
     // Utils
-    /// @brief Convert a JSArg into a JSValue
-    JSValue __to_js(JSContext *ctx, const _JSArg &arg);
     /// @brief Convert a JSArgs type into a JSValue.
     JSValue to_js(JSContext *ctx, const JSArg &args);
     /// @brief Convert a JSValue into a JSArg

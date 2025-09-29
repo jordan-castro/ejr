@@ -1,5 +1,6 @@
 #include <include/ejr.h>
 #include <include/ejr.hpp>
+#include <memory>
 
 struct JSValueAD {
     /// @brief id -> value map
@@ -107,25 +108,28 @@ ejr::JSArg jsarg_to_ejr(JSArg arg) {
             return arg.value.uint32_t_val;
         }
         case JSARG_TYPE_C_ARRAY: {
-            std::vector<ejr::_JSArg> args;
+            std::vector<ejr::JSArg> args;
 
             if (!arg.value.c_array_val.items) {
-                return args;
+                return ejr::JSArg(std::move(args));
             }
 
             for (size_t i = 0; i < arg.value.c_array_val.count; ++i) {
                 ejr::JSArg new_arg = jsarg_to_ejr(*arg.value.c_array_val.items[i]);
-                args.push_back(std::get<ejr::_JSArg>(new_arg));
+                args.push_back(new_arg);
             }
 
-            return args;
+            return ejr::JSArg(std::move(args));
         }
         case JSARG_TYPE_NULL: {
-            return ejr::JSArgNull{};
+            return ejr::JSArg(nullptr);
+        }
+        case JSARG_TYPE_UNDEFINED: {
+            return ejr::JSArg(std::monostate());
         }
         default: {
-            // Default is a Null. I don't like undefined in JS...
-            return ejr::JSArgNull{};
+            // Default is a undefined. I don't like undefined in JS...
+            return ejr::JSArg(std::monostate());
         }
     }
 }
@@ -133,40 +137,39 @@ ejr::JSArg jsarg_to_ejr(JSArg arg) {
 JSArg* ejr_to_jsarg(ejr::JSArg ejr_arg) {
     JSArg* arg;
 
-    std::visit([&](auto &&parent) {
-        using pT = std::decay_t<decltype(parent)>;
-
-        if constexpr (std::is_same_v<pT, ejr::_JSArg>) {
-            std::visit([&](auto &&value) {
-                using T = std::decay_t<decltype(value)>;
-                if constexpr (std::is_same_v<T, int>) {
-                    arg = jsarg_int(value);
-                } else if constexpr (std::is_same_v<T, float>) {
-                    arg = jsarg_float(value);
-                } else if constexpr (std::is_same_v<T, double>) {
-                    arg = jsarg_double(value);
-                } else if constexpr (std::is_same_v<T, bool>) {
-                    arg = jsarg_bool(value);
-                } else if constexpr (std::is_same_v<T, std::string>) {
-                    char* c_str = new char[value.size() + 1];
-                    std::memcpy(c_str, value.c_str(), value.size() + 1);
-                    arg = jsarg_str(c_str);
-                } else if constexpr (std::is_same_v<T, int64_t>) {
-                    arg = jsarg_int64t(value);
-                } else if constexpr (std::is_same_v<T, uint32_t>) {
-                    arg = jsarg_uint32t(value);
-                }
-                else {
-                    arg = jsarg_null();
-                } 
-            }, parent);
-        } else if constexpr (std::is_same_v<pT, std::vector<ejr::_JSArg>>) {
-            arg = jsarg_carray(parent.size());
-            for (size_t i = 0; i < parent.size(); ++i) {
-                jsarg_add_value_to_c_array(arg, ejr_to_jsarg(parent[i]));
+    std::visit([&](auto &&value) {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, int>) {
+            arg = jsarg_int(value);
+        } else if constexpr (std::is_same_v<T, float>) {
+            arg = jsarg_float(value);
+        } else if constexpr (std::is_same_v<T, double>) {
+            arg = jsarg_double(value);
+        } else if constexpr (std::is_same_v<T, bool>) {
+            arg = jsarg_bool(value);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            char* c_str = new char[value.size() + 1];
+            std::memcpy(c_str, value.c_str(), value.size() + 1);
+            arg = jsarg_str(c_str);
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+            arg = jsarg_int64t(value);
+        } else if constexpr (std::is_same_v<T, uint32_t>) {
+            arg = jsarg_uint32t(value);
+        } else if constexpr (std::is_same_v<T, ejr::JSArgNull>) {
+            arg = jsarg_null();
+        } else if constexpr (std::is_same_v<T, ejr::JSArgUndefined>) {
+            arg = jsarg_undefined();
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<ejr::JSArgArray>>) {
+            arg = jsarg_carray(value->size());
+            for (size_t i = 0; i < value->size(); i++) {
+                JSArg* i_arg = ejr_to_jsarg((*value)[i]);
+                jsarg_add_value_to_c_array(arg, i_arg);
             }
         }
-    }, ejr_arg);
+        else {
+            arg = jsarg_null();
+        } 
+    }, ejr_arg.value);
 
     return arg;
 }

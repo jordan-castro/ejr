@@ -43,7 +43,7 @@ static JSModuleDef *js_module_loader(JSContext *ctx, const char *module_name, vo
     return m;
 }
 
-JSValue ejr::__to_js(JSContext *ctx, const _JSArg &arg)
+JSValue ejr::to_js(JSContext *ctx, const JSArg &arg)
 {
     return std::visit([&](auto &&value) -> JSValue
                       { 
@@ -68,29 +68,17 @@ JSValue ejr::__to_js(JSContext *ctx, const _JSArg &arg)
                 return js_null();
             } else if constexpr (std::is_same_v<T, JSArgUndefined>) {
                 return js_undefined();
-            }
+            } else if constexpr (std::is_same_v<T, std::shared_ptr<JSArgArray>>) {
+                JSValue arr = JS_NewArray(ctx);
+                for (size_t i = 0; i < value->size(); i++) {
+                    JSValue elem = to_js(ctx, (*value)[i]);
+                    JS_SetPropertyUint32(ctx, arr, i, elem);
+                }
+                return arr;
+            } 
             else { 
                 return js_undefined();
-            } }, arg);
-}
-
-JSValue ejr::to_js(JSContext *ctx, const JSArg &args)
-{
-    return std::visit([&](auto &&value) -> JSValue
-                      {
-        using T = std::decay_t<decltype(value)>;
-        if constexpr (std::is_same_v<T, vector<_JSArg>>) {
-            JSValue arr = JS_NewArray(ctx);
-            for (size_t i = 0; i < value.size(); ++i) {
-                JSValue elem = __to_js(ctx, value[i]);
-                JS_SetPropertyUint32(ctx, arr, i, elem);
-            }
-            return arr;
-        } else if constexpr (std::is_same_v<T, _JSArg>) {
-            return __to_js(ctx, value);
-        } else {
-            return js_undefined();
-        } }, args);
+            } }, arg.value);
 }
 
 JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
@@ -157,24 +145,21 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
         JS_ToUint32(ctx, &len, len_val);
         JS_FreeValue(ctx, len_val);
 
-        std::vector<_JSArg> vec;
+        std::vector<JSArg> vec;
         vec.reserve(len);
 
         for (uint32_t i = 0; i < len; i++)
         {
             JSValue elem = JS_GetPropertyUint32(ctx, value, i);
             JSArg arg = from_js(ctx, elem);
-            if (std::holds_alternative<_JSArg>(arg))
-            {
-                vec.push_back(std::get<_JSArg>(arg));
-            }
+            vec.push_back(arg);
         }
 
         if (force_free)
         {
             JS_FreeValue(ctx, value);
         }
-        return vec;
+        return JSArg(std::move(vec));
     }
     else if (JS_IsNull(value))
     {
