@@ -208,7 +208,7 @@ void jsarg_free(JSArg* arg);
  * @param args A pointer of pointers of JSArgs
  * @param argc Number of pointers.
  */
-void jsarg_free_all(JSArg** args, int argc);
+void jsarg_free_all(JSArg** args, size_t argc);
 
 /**
  * @brief Create a JSArg**

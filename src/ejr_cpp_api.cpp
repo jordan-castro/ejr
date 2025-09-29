@@ -107,6 +107,7 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
     {
         int32_t i32;
         int64_t i64;
+        uint32_t u32;
         double d;
         if (JS_ToInt32(ctx, &i32, value) == 0)
         {
@@ -122,7 +123,7 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
             {
                 JS_FreeValue(ctx, value);
             }
-            return static_cast<long>(i64);
+            return i64;
         }
         else if (JS_ToFloat64(ctx, &d, value) == 0)
         {
@@ -131,6 +132,11 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
                 JS_FreeValue(ctx, value);
             }
             return d;
+        } else if (JS_ToUint32(ctx, &u32, value) == 0) {
+            if (force_free) {
+                JS_FreeValue(ctx, value);
+            }
+            return u32;
         }
         if (force_free)
         {

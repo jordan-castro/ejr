@@ -17,12 +17,12 @@ int main() {
 
     easyjsr->register_callback("print", [](const JSArgs& args) -> JSArg {
         cout << jsarg_to_str(args[0]) << endl;
-        return JSArgNull{};
+        return JSArg(nullptr);
     });
 
     easyjsr->register_module("ejr:john_cena", vector<JSMethod>{
         JSMethod("test", [](const JSArgs& args) -> JSArg {
-            return "AND HIS NAME IS JOHN CENA!";
+            return JSArg("AND HIS NAME IS JOHN CENA!");
         })
     });
 

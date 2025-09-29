@@ -303,7 +303,7 @@ extern "C" {
         return new JSArg*[argc]{nullptr};
     }
 
-    void jsarg_free_all(JSArg** args, int argc) {
+    void jsarg_free_all(JSArg** args, size_t argc) {
         if (args == nullptr) {
             return;
         }
