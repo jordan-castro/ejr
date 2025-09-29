@@ -108,7 +108,7 @@ namespace ejr
      */ 
     template<typename T>
     T jsarg_as(const ejr::JSArg& arg) {
-        return std::get<T>(arg);
+        return std::get<T>(arg.value);
     }
 
     /// @brief get the JSClassID from a type
