@@ -217,7 +217,18 @@ void jsarg_free_all(JSArg** args, size_t argc);
  * 
  * @return a Pointer of Pointers
  */
-JSArg** jsarg_make_list(int argc);
+JSArg** jsarg_make_list(size_t argc);
+
+/**
+ * @brief Add a JSArg to a JSArg** 
+ * 
+ * This is NOT for a C_Array! But rather a list of JSArgs
+ * 
+ * @param jsarg the list ptr
+ * @param njsarg the jsarg to add
+ * @param i the index where this goes
+ */
+void jsarg_add_to_list(JSArg** jsarg, JSArg* njsarg, size_t i);
 
 // EasyJSR specific
 /**
@@ -255,6 +266,8 @@ int ejr_eval_module(EasyJSRHandle* handle, const char* js, const char* file_name
 /**
  * @brief Evaluate a JS function in the current scope/runtime.
  * 
+ * IMPORTANT: args are freed during this call. If you plan to use them again, copy them.
+ * 
  * @param handle the easyjsr runtime.
  * @param fn_name The JS function name.
  * @param args The args to pass into the function.
@@ -276,6 +289,8 @@ char * ejr_val_to_string(EasyJSRHandle* handle, int value_id);
 
 /**
  * @brief Evaluate a JS function in the current scope/runtime on a class or object.
+ * 
+ * IMPORTANT: args are freed during this call. If you plan to use them again, copy them.
  * 
  * @param handle the easyjsr runtime.
  * @param value_id The objects/classes id in jsvad

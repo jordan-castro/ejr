@@ -35,4 +35,5 @@
 - ~~Figure out the Assertion failed: list_empty(&rt->gc_obj_list) error~~
 
 - Add async/await support via ejr_await_promise(handle_ptr, val_id)
-- Add the ability for _JSArg to hold _JSArg
+- ~~Add the ability for _JSArg to hold _JSArg~~
+- ~~Also added memory management within eval_function and eval_class_function~~

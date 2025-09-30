@@ -299,8 +299,8 @@ extern "C" {
         return ejr_to_jsarg(ejr_arg);
     }
 
-    JSArg** jsarg_make_list(int argc) {
-        return new JSArg*[argc]{nullptr};
+    JSArg** jsarg_make_list(size_t argc) {
+        return new JSArg*[argc]{ejr_to_jsarg(ejr::JSArg(std::monostate()))};
     }
 
     void jsarg_free_all(JSArg** args, size_t argc) {
@@ -316,6 +316,19 @@ extern "C" {
         }
 
         delete[] args;
+    }
+
+    void jsarg_add_to_list(JSArg** jsarg, JSArg* njsarg, size_t i) {
+        if (valid_ptrs(std::vector<void*>{jsarg, njsarg})) {
+            return;
+        }
+
+        if (jsarg[i] == nullptr) {
+            return;
+        }
+
+        // Add njsarg
+        jsarg[i] = njsarg;
     }
 
     // Deleters
@@ -437,6 +450,9 @@ extern "C" {
 
         // Call the function
         JSValue value = handle->instance->eval_function(fn_name_str, ejr_jsargs);
+
+        // Free input args
+        jsarg_free_all(args, arg_count);
         
         return handle->jsvad->add_value(value);
     }
@@ -484,6 +500,10 @@ extern "C" {
         }
         // Call
         JSValue value = handle->instance->eval_class_function(object, fn_name_str, jsargs);
+
+        // Free input args
+        jsarg_free_all(args, arg_count);
+
         // Return id
         return handle->jsvad->add_value(value);
     }
