@@ -13,7 +13,7 @@
 - ~~Register modules~~
 - ~~Macro for loading custom JS files to include at startup.~~
 - ~~advanced error logging~~ (Decent enough with clean_js_value for now)...
-- add support for all JS Values in _JSArg
+- add support for all JS Values
 - ~~Add import support~~
 - Potentially add import support in a repl? But node does not so it's prob fine...
 
@@ -35,5 +35,8 @@
 - ~~Figure out the Assertion failed: list_empty(&rt->gc_obj_list) error~~
 
 - Add async/await support via ejr_await_promise(handle_ptr, val_id)
+- Add error handling via ejr_catch_error():
 - ~~Add the ability for _JSArg to hold _JSArg~~
 - ~~Also added memory management within eval_function and eval_class_function~~
+- Add jsarg_exception
+- Add JSArgTypedArray

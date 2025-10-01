@@ -29,7 +29,8 @@ typedef enum {
     JSARG_TYPE_UINT32_T,
     JSARG_TYPE_C_ARRAY,
     JSARG_TYPE_NULL,
-    JSARG_TYPE_UNDEFINED
+    JSARG_TYPE_UNDEFINED,
+    JSARG_TYPE_TYPED_ARRAY,
 } JSArgType;
 typedef struct JSArg JSArg;
 /**
@@ -163,6 +164,18 @@ JSArg* jsarg_null();
  * @return JSArg
  */
 JSArg* jsarg_bool(bool value);
+
+/**
+ * @brief Create a JSArgTypedArray<uint8_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The uint8_t*
+ * @param argc The number of uint8_ts.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_uint8_array(const uint8_t* args, size_t argc);
 
 /**
  * @brief Add a JSArg value to a array.

@@ -5,6 +5,14 @@
 // Download the correct files from https://github.com/bellard/quickjs
 // and place them in lib/
 
+macro jsimport(imports, module) {
+    javascript{
+        import #imports from #module
+    }
+}
+
+@jsimport({ File }, "ejr:io")
+
 files = [
     // VM
     "quickjs.c",
@@ -28,25 +36,28 @@ files = [
     // Simple linked-list macros used throughout.
     "quickjs-atom.h",
     "quickjs-opcode.h",
-    // quickjs-lib (std, os)
+    // quickjs-lib (std, os) <- This is optional. I don't use it in default ejr builds.
     // "quickjs-libc.c",
     // "quickjs-libc.h"
 ]
 // https://raw.githubusercontent.com/bellard/quickjs/refs/heads/master/file
 
-async fn save_file(file_name, contents) {
-    path = "lib/$file_name"
-    await Deno.writeTextFile(path, contents)
-}
+save_file = async fn(file_name, contents) await File.write("lib/$file_name", contents)
 
 async fn download_file(file) {
-    url = "https://raw.githubusercontent.com/bellard/quickjs/refs/heads/master/$file"
-    contents = await fetch(url)
-    contents = await contents.text()
+    fn{
+        url = "https://raw.githubusercontent.com/bellard/quickjs/refs/heads/master/$file"
+        contents = await fetch(url)
+        contents = await contents.text()
+    }
     // Save file
     await save_file(file, contents)
 }
 
-for file in files {
-    await download_file(file)
+macro batch(func, items) {
+    await Promise.all(items.map(func))
+}
+
+async {
+    await @batch(download_file, files)
 }

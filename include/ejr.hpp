@@ -19,29 +19,66 @@ namespace ejr
 
     // Types
     /// @brief a null representation for JSArg.
-    struct JSArgNull {};
+    struct JSArgNull
+    {
+    };
 
     /// @brief a undefined representation for JSArg.
-    struct JSArgUndefined {};
+    struct JSArgUndefined
+    {
+    };
+
+    /// @brief a defined representation for JSArg.
+    template <typename T>
+    struct JSArgTypedArray
+    {
+        std::vector<T> values;
+        JSTypedArrayEnum array_type;
+    };
+
+    // typedef enum JSTypedArrayEnum {
+    //     JS_TYPED_ARRAY_UINT8C = 0,
+    //     JS_TYPED_ARRAY_INT8,
+    //     JS_TYPED_ARRAY_UINT8,
+    //     JS_TYPED_ARRAY_INT16,
+    //     JS_TYPED_ARRAY_UINT16,
+    //     JS_TYPED_ARRAY_INT32,
+    //     JS_TYPED_ARRAY_UINT32,
+    //     JS_TYPED_ARRAY_BIG_INT64,
+    //     JS_TYPED_ARRAY_BIG_UINT64,
+    //     JS_TYPED_ARRAY_FLOAT16,
+    //     JS_TYPED_ARRAY_FLOAT32,
+    //     JS_TYPED_ARRAY_FLOAT64,
+    // } JSTypedArrayEnum;
 
     /// @brief vector<JSArg> repr;
     using JSArgArray = std::vector<JSArg>;
 
     /// @brief A JSArg for dynamic typing.
-    struct JSArg {
+    struct JSArg
+    {
         using ValueType = std::variant<
-            int, 
-        double, 
-        float, 
-        long, 
-        std::string, 
-        bool, 
-        int64_t, 
-        uint32_t, 
-        JSArgNull, 
-        JSArgUndefined, 
-        std::shared_ptr<JSArgArray>
-    >;
+            int,
+            double,
+            float,
+            long,
+            std::string,
+            bool,
+            int64_t,
+            uint32_t,
+            JSArgNull,
+            JSArgUndefined,
+            std::shared_ptr<JSArgArray>,
+            JSArgTypedArray<uint8_t>,
+            JSArgTypedArray<int32_t>,
+            JSArgTypedArray<uint32_t>,
+            JSArgTypedArray<int64_t>,
+            JSArgTypedArray<int8_t>,
+            JSArgTypedArray<int16_t>,
+            JSArgTypedArray<uint16_t>,
+            JSArgTypedArray<uint64_t>,
+            JSArgTypedArray<float>,
+            >;
 
         ValueType value;
 
@@ -49,85 +86,102 @@ namespace ejr
         JSArg(int v) : value(v) {}
         JSArg(double v) : value(v) {}
         JSArg(float v) : value(v) {}
-        JSArg(const std::string& v) : value(v) {}
+        JSArg(const std::string &v) : value(v) {}
         JSArg(bool v) : value(v) {}
         JSArg(uint32_t v) : value(v) {}
         JSArg(int64_t v) : value(v) {}
         JSArg(std::nullptr_t) : value(JSArgNull{}) {}
         JSArg(std::monostate) : value(JSArgUndefined{}) {}
-        JSArg(std::vector<JSArg>&& vec) : value(std::make_shared<JSArgArray>(std::move(vec))) {}
+        JSArg(std::vector<JSArg> &&vec) : value(std::make_shared<JSArgArray>(std::move(vec))) {}
     };
 
-    /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg 
-    using DynCallback = std::function<JSArg(const std::vector<JSArg>&)>;
+    /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg
+    using DynCallback = std::function<JSArg(const std::vector<JSArg> &)>;
     /// @brief Shorthand for std::vector<JSArg>
     using JSArgs = std::vector<JSArg>;
     /// @brief Type for file loader function
-    using FileLoaderFn = std::function<std::string(const std::string&)>;
+    using FileLoaderFn = std::function<std::string(const std::string &)>;
 
     /// @brief RAII JSValue
     /// Use this inteligently, sometimes you want to free the JSValue manually.
-    class EJRValue {
-        private:
-            JSValue val;
-            JSContext* ctx;
-        public:
-            EJRValue(JSContext* ctx, JSValue val);
-            ~EJRValue();
+    class EJRValue
+    {
+    private:
+        JSValue val;
+        JSContext *ctx;
 
-            JSValue& get_ref();
+    public:
+        EJRValue(JSContext *ctx, JSValue val);
+        ~EJRValue();
 
-            // Don't allow copying
-            EJRValue(const EJRValue&) = delete;
-            EJRValue& operator =(const EJRValue&) = delete;
-            EJRValue(EJRValue&& other) noexcept : val(other.val) , ctx(other.ctx) {
+        JSValue &get_ref();
+
+        // Don't allow copying
+        EJRValue(const EJRValue &) = delete;
+        EJRValue &operator=(const EJRValue &) = delete;
+        EJRValue(EJRValue &&other) noexcept : val(other.val), ctx(other.ctx)
+        {
+            other.val = js_undefined();
+        }
+        EJRValue &operator=(EJRValue &&other) noexcept
+        {
+            if (this != &other)
+            {
+                JS_FreeValue(this->ctx, this->val);
+                val = other.val;
+                this->ctx = other.ctx;
                 other.val = js_undefined();
             }
-            EJRValue& operator=(EJRValue&& other) noexcept {
-                if (this != &other) {
-                    JS_FreeValue(this->ctx, this->val);
-                    val = other.val;
-                    this->ctx = other.ctx;
-                    other.val = js_undefined();
-                }
-                return *this;
-            }
+            return *this;
+        }
     };
-    
+
     /// @brief A method.
-    struct JSMethod {
+    struct JSMethod
+    {
         std::string name;
         DynCallback callback;
 
-        JSMethod(const std::string& name, DynCallback callback);
+        JSMethod(const std::string &name, DynCallback callback);
     };
 
     // Templates
     /**
      * Get a JSArg as a certain type.
-     */ 
-    template<typename T>
-    T jsarg_as(const ejr::JSArg& arg) {
+     */
+    template <typename T>
+    T jsarg_as(const ejr::JSArg &arg)
+    {
         return std::get<T>(arg.value);
     }
 
     /// @brief get the JSClassID from a type
-    template<typename T>
-    JSClassID get_js_class_id() {
+    template <typename T>
+    JSClassID get_js_class_id()
+    {
         static JSClassID class_id = 0; // static ensures one per type
-        if (class_id == 0) {
+        if (class_id == 0)
+        {
             JS_NewClassID(&class_id);
         }
         return class_id;
+    }
+
+    /// @brief Create a JS Typed Array
+    template<typename T>
+    JSValue create_js_array_typed(JSContext* ctx, JSArgTypedArray<T> typed_array) {
+        JSValue buffer = JS_NewArrayBufferCopy(ctx, typed_array.values.data(), typed_array.values.size());
+        JSValue array = JS_NewTypedArray(ctx, typed_array.values.size(), typed_array.values.data(), typed_array.array_type);
+        return array;
     }
 
     // Utils
     /// @brief Convert a JSArgs type into a JSValue.
     JSValue to_js(JSContext *ctx, const JSArg &args);
     /// @brief Convert a JSValue into a JSArg
-    JSArg from_js(JSContext *ctx, JSValue value, bool force_free=true);
+    JSArg from_js(JSContext *ctx, JSValue value, bool force_free = true);
     /// @brief Convert a JSArg into a string, will return "unkown" if not vaild JSArg to string
-    std::string jsarg_to_str(const JSArg& arg);
+    std::string jsarg_to_str(const JSArg &arg);
 
     // EasyJSR class
     /**
@@ -149,9 +203,9 @@ namespace ejr
         std::tuple<JSValue, bool> clean_js_value(JSValue val);
 
         /// @brief Create a trampoline that calls a callback from callbacks.
-        JSValue create_trampoline(const std::string& cb_name, DynCallback cb);
+        JSValue create_trampoline(const std::string &cb_name, DynCallback cb);
 
-        /// @brief Unmangled names of methods with their JSValue. 
+        /// @brief Unmangled names of methods with their JSValue.
         std::unordered_map<std::string, std::vector<std::tuple<std::string, JSValue>>> methods_by_module;
 
         /// @brief internal file loader. Set via set_file_loader
@@ -162,7 +216,7 @@ namespace ejr
         ~EasyJSR();
 
         /// @brief initiate a module statically
-        static int module_init(JSContext*ctx, JSModuleDef*m);
+        static int module_init(JSContext *ctx, JSModuleDef *m);
 
         /// @brief Set a file loader function.
         void set_file_loader(FileLoaderFn func);
@@ -171,10 +225,10 @@ namespace ejr
         JSArg jsvalue_to_jsarg(JSValue value, bool force_free);
 
         /// @brief a File Loader.
-        std::string load_file(const std::string& file_path);
+        std::string load_file(const std::string &file_path);
 
         /// @brief registered Modules
-        std::unordered_map<std::string, JSModuleDef*> modules;
+        std::unordered_map<std::string, JSModuleDef *> modules;
 
         /// @brief a really easy way to run a JS script. No strings attached, very plain way.
         JSValue eval_script(const std::string &js, const std::string &file_name);
@@ -186,9 +240,9 @@ namespace ejr
         void free_jsval(JSValue value);
 
         /// @brief Free a vector of JSValue
-        void free_jsvals(const std::vector<JSValue>& js_args);
+        void free_jsvals(const std::vector<JSValue> &js_args);
 
-        /// @brief evaluate JS with strings attached. 
+        /// @brief evaluate JS with strings attached.
         JSValue eval(const std::string &js, const std::string &file_name, int eval_flags);
 
         /// @brief evalute a function from the current global context.
@@ -213,8 +267,8 @@ namespace ejr
         void register_callback(const std::string &fn_name, DynCallback callback);
 
         /// @brief register a module (Runtime only)
-        void register_module(const std::string &module_name, const std::vector<JSMethod>& methods);
-        
+        void register_module(const std::string &module_name, const std::vector<JSMethod> &methods);
+
         // /// @brief register a CPP class (Runtime only).
         // template<typename T>
         // inline void register_class(const std::string &class_name, std::vector<PublicMethod> public_methods) {
@@ -283,7 +337,7 @@ namespace ejr
 
         //     // Mangle the prototype name to the callbcks names
         //     std::string mangled_name = "___" + class_name + "___";
-    
+
         //     // Bind methods to prototype
         //     for (size_t i = 0 ; i < public_methods.size(); i++) {
         //         auto& m = public_methods[i];
@@ -306,7 +360,7 @@ namespace ejr
         //             // Convert argv[]
         //             for (int i = 0; i < argc; ++i) {
         //                 args.push_back(from_js(ctx, argv[i], false));
-        //             } 
+        //             }
         //             std::cout << "Here 5" << std::endl;
 
         //             // Lookup callback by magic
@@ -356,5 +410,5 @@ namespace ejr
 
         // /// @brief Register a class dynamically (Runtime only)
         // void register_dynamic_class();
-   };
+    };
 };

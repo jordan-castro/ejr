@@ -75,7 +75,27 @@ JSValue ejr::to_js(JSContext *ctx, const JSArg &arg)
                     JS_SetPropertyUint32(ctx, arr, i, elem);
                 }
                 return arr;
-            } 
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<uint8_t>>) {
+                // JSValue buffer = JS_NewArrayBufferCopy(ctx, value.values.data(), value.values.size());
+                // JSValue arr = JS_NewTypedArray(ctx, value.values.size(), &buffer, JSTypedArrayEnum::JS_TYPED_ARRAY_UINT8);
+                return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<int32_t>>) {
+                return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<uint32_t>>) {
+                return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<int64_t>>) {
+                return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<int8_t>>) {
+                return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<int16_t>>) {
+                return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<uint16_t>>) {
+                return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<uint64_t>>) {
+                return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgTypedArray<float>>) {
+                return create_js_array_typed(ctx, value);
+            }
             else { 
                 return js_undefined();
             } }, arg.value);
