@@ -68,7 +68,7 @@ JSValue ejr::to_js(JSContext *ctx, const JSArg &arg)
                 return js_null();
             } else if constexpr (std::is_same_v<T, JSArgUndefined>) {
                 return js_undefined();
-            } else if constexpr (std::is_same_v<T, std::shared_ptr<JSArgArray>>) {
+            } else if constexpr (std::is_same_v<T, std::shared_ptr<std::vector<JSArg>>>) {
                 JSValue arr = JS_NewArray(ctx);
                 for (size_t i = 0; i < value->size(); i++) {
                     JSValue elem = to_js(ctx, (*value)[i]);
@@ -76,8 +76,6 @@ JSValue ejr::to_js(JSContext *ctx, const JSArg &arg)
                 }
                 return arr;
             } else if constexpr (std::is_same_v<T, JSArgTypedArray<uint8_t>>) {
-                // JSValue buffer = JS_NewArrayBufferCopy(ctx, value.values.data(), value.values.size());
-                // JSValue arr = JS_NewTypedArray(ctx, value.values.size(), &buffer, JSTypedArrayEnum::JS_TYPED_ARRAY_UINT8);
                 return create_js_array_typed(ctx, value);
             } else if constexpr (std::is_same_v<T, JSArgTypedArray<int32_t>>) {
                 return create_js_array_typed(ctx, value);

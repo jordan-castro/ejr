@@ -14,9 +14,6 @@
 
 namespace ejr
 {
-    // Forward decleration
-    struct JSArg;
-
     // Types
     /// @brief a null representation for JSArg.
     struct JSArgNull
@@ -33,27 +30,9 @@ namespace ejr
     struct JSArgTypedArray
     {
         std::vector<T> values;
-        JSTypedArrayEnum array_type;
+
+        JSArgTypedArray(std::vector<T>&& values) : values(values) {}
     };
-
-    // typedef enum JSTypedArrayEnum {
-    //     JS_TYPED_ARRAY_UINT8C = 0,
-    //     JS_TYPED_ARRAY_INT8,
-    //     JS_TYPED_ARRAY_UINT8,
-    //     JS_TYPED_ARRAY_INT16,
-    //     JS_TYPED_ARRAY_UINT16,
-    //     JS_TYPED_ARRAY_INT32,
-    //     JS_TYPED_ARRAY_UINT32,
-    //     JS_TYPED_ARRAY_BIG_INT64,
-    //     JS_TYPED_ARRAY_BIG_UINT64,
-    //     JS_TYPED_ARRAY_FLOAT16,
-    //     JS_TYPED_ARRAY_FLOAT32,
-    //     JS_TYPED_ARRAY_FLOAT64,
-    // } JSTypedArrayEnum;
-
-    /// @brief vector<JSArg> repr;
-    using JSArgArray = std::vector<JSArg>;
-
     /// @brief A JSArg for dynamic typing.
     struct JSArg
     {
@@ -68,7 +47,7 @@ namespace ejr
             uint32_t,
             JSArgNull,
             JSArgUndefined,
-            std::shared_ptr<JSArgArray>,
+            std::shared_ptr<std::vector<JSArg>>,
             JSArgTypedArray<uint8_t>,
             JSArgTypedArray<int32_t>,
             JSArgTypedArray<uint32_t>,
@@ -77,8 +56,7 @@ namespace ejr
             JSArgTypedArray<int16_t>,
             JSArgTypedArray<uint16_t>,
             JSArgTypedArray<uint64_t>,
-            JSArgTypedArray<float>,
-            >;
+            JSArgTypedArray<float>>;
 
         ValueType value;
 
@@ -92,7 +70,10 @@ namespace ejr
         JSArg(int64_t v) : value(v) {}
         JSArg(std::nullptr_t) : value(JSArgNull{}) {}
         JSArg(std::monostate) : value(JSArgUndefined{}) {}
-        JSArg(std::vector<JSArg> &&vec) : value(std::make_shared<JSArgArray>(std::move(vec))) {}
+        JSArg(std::vector<JSArg> &&vec) : value(std::make_shared<std::vector<JSArg>>(std::move(vec))) {}
+
+        template<typename T>
+        JSArg(JSArgTypedArray<T> v) : value(v) {}
     };
 
     /// @brief A type for Dynamic Callbacks ([JSArgs]) -> JSArg
@@ -170,8 +151,39 @@ namespace ejr
     /// @brief Create a JS Typed Array
     template<typename T>
     JSValue create_js_array_typed(JSContext* ctx, JSArgTypedArray<T> typed_array) {
-        JSValue buffer = JS_NewArrayBufferCopy(ctx, typed_array.values.data(), typed_array.values.size());
-        JSValue array = JS_NewTypedArray(ctx, typed_array.values.size(), typed_array.values.data(), typed_array.array_type);
+        // Get array type from T
+        JSTypedArrayEnum array_type;
+
+        if constexpr (std::is_same_v<T, uint8_t>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_UINT8;
+        } else if constexpr (std::is_same_v<T, int32_t>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_INT32;
+        } else if constexpr (std::is_same_v<T, uint32_t>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_UINT32;
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_BIG_INT64;
+        } else if constexpr (std::is_same_v<T, int8_t>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_INT8;
+        } else if constexpr (std::is_same_v<T, int16_t>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_INT16;
+        } else if constexpr (std::is_same_v<T, uint16_t>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_UINT16;
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_BIG_UINT64;
+        } else if constexpr (std::is_same_v<T, float>) {
+            array_type = JSTypedArrayEnum::JS_TYPED_ARRAY_FLOAT32;
+        } else {
+            static_assert(sizeof(T) == 0, "Unsupported type for JS typed array");
+        }
+
+        const uint8_t* values = reinterpret_cast<const uint8_t*>(typed_array.values.data());
+
+        JSValue buffer = JS_NewArrayBufferCopy(ctx, values, typed_array.values.size() * sizeof(T));
+        JSValue array = JS_NewTypedArray(ctx, typed_array.values.size(), &buffer, array_type);
+        
+        // Free buffer
+        JS_FreeValue(ctx, buffer);
+
         return array;
     }
 

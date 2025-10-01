@@ -30,7 +30,15 @@ typedef enum {
     JSARG_TYPE_C_ARRAY,
     JSARG_TYPE_NULL,
     JSARG_TYPE_UNDEFINED,
-    JSARG_TYPE_TYPED_ARRAY,
+    JSARG_TYPE_UINT8_ARRAY,
+    JSARG_TYPE_INT32_ARRAY,
+    JSARG_TYPE_UINT32_ARRAY,
+    JSARG_TYPE_INT64_ARRAY,
+    JSARG_TYPE_INT8_ARRAY,
+    JSARG_TYPE_UINT16_ARRAY,
+    JSARG_TYPE_INT16_ARRAY,
+    JSARG_TYPE_UINT64_ARRAY,
+    JSARG_TYPE_FLOAT_ARRAY
 } JSArgType;
 typedef struct JSArg JSArg;
 /**
@@ -51,6 +59,42 @@ struct JSArg {
             JSArg** items;
             size_t count;
         } c_array_val;
+        struct {
+            const uint8_t* items;
+            size_t count;
+        } u8_array_val;
+        struct {
+            const int32_t* items;
+            size_t count;
+        } i32_array_val;
+        struct {
+            const uint32_t* items;
+            size_t count;
+        } u32_array_val;
+        struct {
+            const int64_t* items;
+            size_t count;
+        } i64_array_val;
+        struct {
+            const int8_t* items;
+            size_t count;
+        } i8_array_val;
+        struct {
+            const int16_t* items;
+            size_t count;
+        } i16_array_val;
+        struct {
+            const uint16_t* items;
+            size_t count;
+        } u16_array_val;
+        struct {
+            const uint64_t* items;
+            size_t count;
+        } u64_array_val;
+        struct {
+            const float* items;
+            size_t count;
+        } float_array_val; 
     } value;
 };
 /**
@@ -175,7 +219,103 @@ JSArg* jsarg_bool(bool value);
  * 
  * @return JSArg
  */
-JSArg* jsarg_uint8_array(const uint8_t* args, size_t argc);
+JSArg* jsarg_u8_array(const uint8_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<int32_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The int32_t*
+ * @param argc The number of int32_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_i32_array(const int32_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<uint32_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The uint32_t*
+ * @param argc The number of uint32_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_u32_array(const uint32_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<int64_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The int64_t*
+ * @param argc The number of int64_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_i64_array(const int64_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<int8_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The int8_t*
+ * @param argc The number of int8_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_i8_array(const int8_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<int16_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The int16_t*
+ * @param argc The number of int16_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_i16_array(const int16_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<uint16_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The uint16_t*
+ * @param argc The number of uint16_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_u16_array(const uint16_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<uint64_t>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The uint64_t*
+ * @param argc The number of uint64_t.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_u64_array(const uint64_t* args, size_t argc);
+
+/**
+ * @brief Create a JSArgTypedArray<float>. 
+ * 
+ * This will copy the memory so feel very free to free it.
+ * 
+ * @param args The float*
+ * @param argc The number of float.
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_float_array(const float* args, size_t argc);
 
 /**
  * @brief Add a JSArg value to a array.
