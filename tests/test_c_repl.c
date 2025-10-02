@@ -37,6 +37,12 @@ JSArg* create_u8_array(JSArg** args, size_t argc, void* opaque) {
     return arg;
 }
 
+JSArg* create_i32_array(JSArg** args, size_t argc, void* opaque) {
+    int32_t data[5] = {10, 20, 30, 40, 55};
+
+    return jsarg_i32_array(data, 5);
+}
+
 int main() {
     // Create a new EasyJS runtime
     EasyJSRHandle* handle = ejr_new();
@@ -48,6 +54,7 @@ int main() {
     ejr_register_callback(handle, "print", js_print, NULL);
     ejr_register_callback(handle, "create_array", create_array, NULL);
     ejr_register_callback(handle, "create_u8_array", create_u8_array, NULL);
+    ejr_register_callback(handle, "create_i32_array", create_i32_array, NULL);
 
     char buffer[BUFFER_SIZE];
 

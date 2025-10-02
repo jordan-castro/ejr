@@ -11,6 +11,7 @@
 #include <lib/quickjs_cpp_utils.hpp>
 #include <iostream>
 #include <tuple>
+#include <lib/quickjs_cpp_utils.hpp>
 
 namespace ejr
 {
@@ -179,8 +180,8 @@ namespace ejr
         const uint8_t* values = reinterpret_cast<const uint8_t*>(typed_array.values.data());
 
         JSValue buffer = JS_NewArrayBufferCopy(ctx, values, typed_array.values.size() * sizeof(T));
-        JSValue argv[1] = { buffer };
-        JSValue array = JS_NewTypedArray(ctx, 1, argv, array_type);
+        JSValue argv[3] = { buffer, js_undefined(), js_undefined() };
+        JSValue array = JS_NewTypedArray(ctx, 3, argv, array_type);
 
         // Free buffer
         JS_FreeValue(ctx, buffer);
