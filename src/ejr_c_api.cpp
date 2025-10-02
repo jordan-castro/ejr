@@ -245,6 +245,20 @@ ejr::JSArg jsarg_to_ejr(JSArg arg)
                                       arg.value.float_array_val.items + arg.value.float_array_val.count);
         return ejr::JSArg(ejr::JSArgTypedArray<float>(std::move(f32_values)));
     }
+    case JSARG_TYPE_EXCEPTION:
+    {
+        std::string message = "Exception";
+        std::string name = "Exception";
+
+        if (arg.value.exception_val.name) {
+            name = arg.value.exception_val.name;
+        }
+        if (arg.value.exception_val.msg) {
+            message = arg.value.exception_val.msg;
+        }
+
+        return ejr::JSArg(ejr::JSArgException(message, name));
+    }
 
     default:
     {
@@ -305,6 +319,8 @@ JSArg *ejr_to_jsarg(ejr::JSArg ejr_arg)
             arg = jsarg_u64_array(value.values.data(), value.values.size());
         } else if constexpr (std::is_same_v<T, ejr::JSArgTypedArray<float>>) {
             arg = jsarg_float_array(value.values.data(), value.values.size());
+        } else if constexpr (std::is_same_v<T, ejr::JSArgException>) {
+            arg = jsarg_exception(value.msg.c_str(), value.name.c_str());
         }
         else {
             arg = jsarg_null();
@@ -337,7 +353,11 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_STRING;
-        arg->value.str_val = value;
+        
+        char* value_copy = new char[strlen(value) + 1];
+        std::memcpy(value_copy, value, strlen(value) + 1);
+        
+        arg->value.str_val = value_copy;
 
         return arg;
     }
@@ -531,6 +551,22 @@ extern "C"
         return arg;
     }
 
+    JSArg* jsarg_exception(const char* message, const char* name) {
+        JSArg* arg = new JSArg();
+        arg->type = JSARG_TYPE_EXCEPTION;
+
+        char* message_copy = new char[strlen(message) + 1]; // nullptr
+        char* name_copy = new char[strlen(name) + 1]; // nullptr
+
+        std::memcpy(message_copy, message, strlen(message) + 1);
+        std::memcpy(name_copy, name, strlen(name) + 1);
+
+        arg->value.exception_val.msg = message_copy;
+        arg->value.exception_val.name = name_copy;
+
+        return arg;
+    }
+    
     void jsarg_add_value_to_c_array(JSArg *arg, JSArg *value)
     {
         if (!arg || !value)

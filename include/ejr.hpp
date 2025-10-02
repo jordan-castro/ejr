@@ -26,7 +26,15 @@ namespace ejr
     {
     };
 
-    /// @brief a defined representation for JSArg.
+    /// @brief a exception representiation for JSArg.
+    struct JSArgException {
+        std::string msg;
+        std::string name;
+
+        JSArgException(const std::string& msg, const std::string& name) : msg(msg), name(name) {} 
+    };
+
+    /// @brief a TypedArray representation for JSArg.
     template <typename T>
     struct JSArgTypedArray
     {
@@ -57,7 +65,8 @@ namespace ejr
             JSArgTypedArray<int16_t>,
             JSArgTypedArray<uint16_t>,
             JSArgTypedArray<uint64_t>,
-            JSArgTypedArray<float>>;
+            JSArgTypedArray<float>,
+            JSArgException>;
 
         ValueType value;
 
@@ -72,6 +81,7 @@ namespace ejr
         JSArg(std::nullptr_t) : value(JSArgNull{}) {}
         JSArg(std::monostate) : value(JSArgUndefined{}) {}
         JSArg(std::vector<JSArg> &&vec) : value(std::make_shared<std::vector<JSArg>>(std::move(vec))) {}
+        JSArg(const JSArgException& exec) : value(exec) {}
 
         template<typename T>
         JSArg(JSArgTypedArray<T> v) : value(v) {}

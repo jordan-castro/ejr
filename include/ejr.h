@@ -38,7 +38,8 @@ typedef enum {
     JSARG_TYPE_UINT16_ARRAY,
     JSARG_TYPE_INT16_ARRAY,
     JSARG_TYPE_UINT64_ARRAY,
-    JSARG_TYPE_FLOAT_ARRAY
+    JSARG_TYPE_FLOAT_ARRAY,
+    JSARG_TYPE_EXCEPTION
 } JSArgType;
 typedef struct JSArg JSArg;
 /**
@@ -96,6 +97,10 @@ struct JSArg {
             const float* items;
             size_t count;
         } float_array_val; 
+        struct {
+            const char* msg;
+            const char* name;
+        } exception_val;
     } value;
 };
 /**
@@ -142,6 +147,8 @@ JSArg* jsarg_int(int value);
 
 /**
  * @brief Create a const char* JSArg.
+ * 
+ * This copies the value so feel free to delete afterwards.
  * 
  * @param value The const char*
  * 
@@ -317,6 +324,18 @@ JSArg* jsarg_u64_array(const uint64_t* args, size_t argc);
  * @return JSArg
  */
 JSArg* jsarg_float_array(const float* args, size_t argc);
+
+/**
+ * @brief Create a JSArgException.
+ * 
+ * This will copy the memory so feel free to delete after this.
+ * 
+ * @param message The exceptions message
+ * @param name The exceptions name
+ * 
+ * @return JSArg
+ */
+JSArg* jsarg_exception(const char* message, const char* name);
 
 /**
  * @brief Add a JSArg value to a array.

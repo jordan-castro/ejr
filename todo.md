@@ -40,4 +40,5 @@
 - ~~Also added memory management within eval_function and eval_class_function~~
 - Add jsarg_exception
 - ~~Add JSArgTypedArray~~
-    - Update float => Float32 array
+    - ~~Update float => Float32 array~~
+    - Add double -> Float64 array

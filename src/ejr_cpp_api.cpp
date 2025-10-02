@@ -93,6 +93,14 @@ JSValue ejr::to_js(JSContext *ctx, const JSArg &arg)
                 return create_js_array_typed(ctx, value);
             } else if constexpr (std::is_same_v<T, JSArgTypedArray<float>>) {
                 return create_js_array_typed(ctx, value);
+            } else if constexpr (std::is_same_v<T, JSArgException>) {
+                JSValue error_msg = JS_NewString(ctx, value.msg.c_str());
+                JSValue error_name = JS_NewString(ctx, value.name.c_str());
+                JSValue error = JS_NewError(ctx);
+                JS_SetPropertyStr(ctx, error, "message", error_msg);
+                JS_SetPropertyStr(ctx, error, "name", error_name);
+
+                return error;
             }
             else { 
                 return js_undefined();
@@ -197,6 +205,63 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
             JS_FreeValue(ctx, value);
         }
         return std::string("undefined");
+    } else if (JS_IsError(ctx, value)) {
+        JSValue message = JS_GetPropertyStr(ctx, value, "message");
+        JSValue name = JS_GetPropertyStr(ctx, value, "name");
+
+        const char* message_cstr = nullptr;
+        const char* name_cstr = nullptr;
+
+        if (!JS_IsUndefined(message)) {
+            message_cstr = JS_ToCString(ctx, message);
+        }
+        if (!JS_IsUndefined(name)) {
+            name_cstr = JS_ToCString(ctx, name);
+        }
+
+        std::string message_str = message_cstr == nullptr ? "Exception" : std::string(message_cstr);
+        std::string name_str = name_cstr == nullptr ? "Exception" : std::string(name_cstr);
+
+        JSArgException exec(message_str, name_cstr);
+
+        if (force_free) {
+            JS_FreeValue(ctx, value);
+        }
+
+        // Free message, name, message_cstr, name_cstr
+        JS_FreeValue(ctx, message);
+        JS_FreeValue(ctx, name);
+
+        if (message_cstr) {
+            JS_FreeCString(ctx, message_cstr);
+        }
+        if (name_cstr) {
+            JS_FreeCString(ctx, name_cstr);
+        }
+
+        return exec;
+    } else if (JS_IsException(value)) {
+        // Get exception
+        JSValue exception = JS_GetException(ctx);
+
+        // Convert to String
+        JSValue exception_js_str = JS_ToString(ctx, exception);
+
+        // Make the error and name the same
+        const char* exeception_cstr = JS_ToCString(ctx, exception_js_str);
+        string exception_str = exeception_cstr == nullptr ? "Exception" : std::string(exeception_cstr);
+
+        if (exeception_cstr) {
+            JS_FreeCString(ctx, exeception_cstr);
+        }
+        JS_FreeValue(ctx, exception);
+        JS_FreeValue(ctx, exception_js_str);
+
+        if (force_free) {
+            JS_FreeValue(ctx, value);
+        }
+
+        return JSArgException(exception_str, exception_str);
     }
 
     // Fallback: return [unsupported] as string

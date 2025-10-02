@@ -43,6 +43,10 @@ JSArg* create_i32_array(JSArg** args, size_t argc, void* opaque) {
     return jsarg_i32_array(data, 5);
 }
 
+JSArg* throw_exception(JSArg** args, size_t argc, void* opaque) {
+    return jsarg_exception("This is just a test.", "TestError");
+}
+
 int main() {
     // Create a new EasyJS runtime
     EasyJSRHandle* handle = ejr_new();
@@ -55,6 +59,7 @@ int main() {
     ejr_register_callback(handle, "create_array", create_array, NULL);
     ejr_register_callback(handle, "create_u8_array", create_u8_array, NULL);
     ejr_register_callback(handle, "create_i32_array", create_i32_array, NULL);
+    ejr_register_callback(handle, "throw_exception", throw_exception, NULL);
 
     char buffer[BUFFER_SIZE];
 
