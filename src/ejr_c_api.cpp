@@ -390,8 +390,9 @@ extern "C"
     {
         JSArg *arg = new JSArg;
         arg->type = JSARG_TYPE_C_ARRAY;
-        arg->value.c_array_val.count = count;
-        arg->value.c_array_val.items = new JSArg *[count];
+        arg->value.c_array_val.capacity = count;
+        arg->value.c_array_val.count = 0;
+        arg->value.c_array_val.items = new JSArg *[count]{nullptr};
 
         return arg;
     }
@@ -416,8 +417,12 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_UINT8_ARRAY;
-        arg->value.u8_array_val.items = args;
         arg->value.u8_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.u8_array_val.items = new uint8_t[argc];
+        std::memcpy((void*)arg->value.u8_array_val.items, args, argc * sizeof(uint8_t));
+
         return arg;
     }
 
@@ -425,8 +430,12 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_INT32_ARRAY;
-        arg->value.i32_array_val.items = args;
         arg->value.i32_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.i32_array_val.items = new int32_t[argc];
+        std::memcpy((void*)arg->value.i32_array_val.items, args, argc * sizeof(int32_t));
+
         return arg;
     }
 
@@ -434,8 +443,12 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_UINT32_ARRAY;
-        arg->value.u32_array_val.items = args;
         arg->value.u32_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.u32_array_val.items = new uint32_t[argc];
+        std::memcpy((void*)arg->value.u32_array_val.items, args, argc * sizeof(uint32_t));
+
         return arg;
     }
 
@@ -443,8 +456,12 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_INT64_ARRAY;
-        arg->value.i64_array_val.items = args;
         arg->value.i64_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.i64_array_val.items = new int64_t[argc];
+        std::memcpy((void*)arg->value.i64_array_val.items, args, argc * sizeof(int64_t));
+
         return arg;
     }
 
@@ -452,8 +469,12 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_INT8_ARRAY;
-        arg->value.i8_array_val.items = args;
         arg->value.i8_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.i8_array_val.items = new int8_t[argc];
+        std::memcpy((void*)arg->value.i8_array_val.items, args, argc * sizeof(int8_t));
+
         return arg;
     }
 
@@ -461,8 +482,12 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_INT16_ARRAY;
-        arg->value.i16_array_val.items = args;
         arg->value.i16_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.i16_array_val.items = new int16_t[argc];
+        std::memcpy((void*)arg->value.i16_array_val.items, args, argc * sizeof(int16_t));
+
         return arg;
     }
 
@@ -470,8 +495,12 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_UINT16_ARRAY;
-        arg->value.u16_array_val.items = args;
         arg->value.u16_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.u16_array_val.items = new uint16_t[argc];
+        std::memcpy((void*)arg->value.u16_array_val.items, args, argc * sizeof(uint16_t));
+
         return arg;
     }
 
@@ -479,17 +508,26 @@ extern "C"
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_UINT64_ARRAY;
-        arg->value.u64_array_val.items = args;
         arg->value.u64_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.u64_array_val.items = new uint64_t[argc];
+        std::memcpy((void*)arg->value.u64_array_val.items, args, argc * sizeof(uint64_t));
+
         return arg;
     }
+
 
     JSArg *jsarg_float_array(const float *args, size_t argc)
     {
         JSArg *arg = new JSArg();
         arg->type = JSARG_TYPE_FLOAT_ARRAY;
-        arg->value.float_array_val.items = args;
         arg->value.float_array_val.count = argc;
+
+        // Allocate internal copy
+        arg->value.float_array_val.items = new float[argc];
+        std::memcpy((void*)arg->value.float_array_val.items, args, argc * sizeof(float));
+
         return arg;
     }
 
@@ -505,6 +543,7 @@ extern "C"
             return;
         }
 
+        size_t capacity = arg->value.c_array_val.capacity;
         JSArg **items = arg->value.c_array_val.items;
         size_t count = arg->value.c_array_val.count;
 
@@ -513,14 +552,15 @@ extern "C"
             return;
         }
 
-        // Find first empty
-        for (size_t i = 0; i < count; ++i)
-        {
-            items[i] = value;
+        if (count >= capacity) {
+            // Not enough space...
+            // TODO: some kind of error log OR grow the memory...
+            return;
         }
 
-        // Not enough space...
-        // TODO: some kind of error log
+        // Update mem
+        items[count] = value;
+        arg->value.c_array_val.count++;
     }
 
     JSArg *jsarg_from_jsvalue(EasyJSRHandle *handle, int value)

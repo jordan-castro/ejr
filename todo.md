@@ -39,4 +39,5 @@
 - ~~Add the ability for _JSArg to hold _JSArg~~
 - ~~Also added memory management within eval_function and eval_class_function~~
 - Add jsarg_exception
-- Add JSArgTypedArray
+- ~~Add JSArgTypedArray~~
+    - Update float => Float32 array

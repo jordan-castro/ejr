@@ -58,6 +58,7 @@ struct JSArg {
         struct {
             JSArg** items;
             size_t count;
+            size_t capacity;
         } c_array_val;
         struct {
             const uint8_t* items;

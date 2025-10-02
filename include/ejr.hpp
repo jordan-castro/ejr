@@ -150,7 +150,7 @@ namespace ejr
 
     /// @brief Create a JS Typed Array
     template<typename T>
-    JSValue create_js_array_typed(JSContext* ctx, JSArgTypedArray<T> typed_array) {
+    JSValue create_js_array_typed(JSContext* ctx, const JSArgTypedArray<T>& typed_array) {
         // Get array type from T
         JSTypedArrayEnum array_type;
 
@@ -179,8 +179,9 @@ namespace ejr
         const uint8_t* values = reinterpret_cast<const uint8_t*>(typed_array.values.data());
 
         JSValue buffer = JS_NewArrayBufferCopy(ctx, values, typed_array.values.size() * sizeof(T));
-        JSValue array = JS_NewTypedArray(ctx, typed_array.values.size(), &buffer, array_type);
-        
+        JSValue argv[1] = { buffer };
+        JSValue array = JS_NewTypedArray(ctx, 1, argv, array_type);
+
         // Free buffer
         JS_FreeValue(ctx, buffer);
 

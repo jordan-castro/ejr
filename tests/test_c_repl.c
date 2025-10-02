@@ -6,6 +6,37 @@
 // Simple REPL prompt
 #define BUFFER_SIZE 1024
 
+JSArg* js_print(JSArg** args, size_t argc, void* opaque) {
+    if (argc > 1) {
+        return jsarg_null();
+    }
+
+    if (args[0]->type != JSARG_TYPE_STRING) {
+        return jsarg_null();
+    }
+
+    printf("%s\n", args[0]->value.str_val);
+
+    return jsarg_null();
+}
+
+JSArg* create_array(JSArg** args, size_t argc, void* opaque) {
+    // Allocate on the heap with malloc
+    JSArg* c_array = jsarg_carray(2);
+    jsarg_add_value_to_c_array(c_array, jsarg_int(0));
+    jsarg_add_value_to_c_array(c_array, jsarg_int(1));
+
+    return c_array;
+}
+
+JSArg* create_u8_array(JSArg** args, size_t argc, void* opaque) {
+    uint8_t data[5] = {10, 20, 30, 40, 50};
+
+    JSArg* arg = jsarg_u8_array(data, 5);
+
+    return arg;
+}
+
 int main() {
     // Create a new EasyJS runtime
     EasyJSRHandle* handle = ejr_new();
@@ -13,6 +44,10 @@ int main() {
         fprintf(stderr, "Failed to create EasyJS runtime.\n");
         return 1;
     }
+
+    ejr_register_callback(handle, "print", js_print, NULL);
+    ejr_register_callback(handle, "create_array", create_array, NULL);
+    ejr_register_callback(handle, "create_u8_array", create_u8_array, NULL);
 
     char buffer[BUFFER_SIZE];
 
