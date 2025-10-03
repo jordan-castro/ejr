@@ -41,6 +41,11 @@ namespace ejr
         std::vector<T> values;
 
         JSArgTypedArray(std::vector<T>&& values) : values(values) {}
+        JSArgTypedArray<T>(uint8_t* buffer_data, size_t element_count) {
+            auto arr = reinterpret_cast<T*>(buffer_data);
+            std::vector<T> bufferValues(arr, arr + element_count);
+            this->values = bufferValues;
+        }
     };
     /// @brief A JSArg for dynamic typing.
     struct JSArg

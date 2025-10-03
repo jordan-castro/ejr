@@ -12,10 +12,15 @@ JSArg* js_print(JSArg** args, size_t argc, void* opaque) {
     }
 
     if (args[0]->type != JSARG_TYPE_STRING) {
-        return jsarg_null();
+        if (args[0]->type == JSARG_TYPE_UINT8_ARRAY) {
+            printf("%zu\n", args[0]->value.u8_array_val.count);
+        } else {
+            return jsarg_null();
+        }
+    } else {
+        printf("%s\n", args[0]->value.str_val);
     }
 
-    printf("%s\n", args[0]->value.str_val);
 
     return jsarg_null();
 }

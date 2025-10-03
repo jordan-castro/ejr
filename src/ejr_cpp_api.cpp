@@ -171,7 +171,8 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
         return 0; // fallback
     }
     else if (JS_IsArray(ctx, value))
-    {
+    {    
+        // Ger length property
         uint32_t len;
         JSValue len_val = JS_GetPropertyStr(ctx, value, "length");
         JS_ToUint32(ctx, &len, len_val);
@@ -262,6 +263,59 @@ JSArg ejr::from_js(JSContext *ctx, JSValue value, bool force_free)
         }
 
         return JSArgException(exception_str, exception_str);
+    } else {
+        
+        // Check if typed array
+        size_t byte_offset, byte_length, bytes_per_element;
+        JSValue typed_array_buffer = JS_GetTypedArrayBuffer(ctx, value, &byte_offset, &byte_length, &bytes_per_element);
+        if (!JS_IsException(typed_array_buffer)) {
+            JSValue constructor = JS_GetPropertyStr(ctx, value, "constructor");
+            JSValue name = JS_GetPropertyStr(ctx, constructor, "name");
+            const char* name_cstr = JS_ToCString(ctx, name);
+
+            size_t psize;
+            uint8_t* buffer_data = JS_GetArrayBuffer(ctx, &psize, typed_array_buffer);
+            // Free that SHIT
+            JS_FreeCString(ctx, name_cstr);
+            JS_FreeValue(ctx, name);
+            JS_FreeValue(ctx, constructor);
+            JS_FreeValue(ctx, typed_array_buffer);
+
+            if (force_free) {
+                JS_FreeValue(ctx, value);
+            }
+
+            if (buffer_data == nullptr) {
+                return string("[unsupported]");
+            }
+            // Actually figure out the data.
+            uint8_t* typed_array_data = buffer_data + byte_offset;
+            size_t element_count = byte_length / bytes_per_element;
+
+            if (strcmp(name_cstr, "Uint8Array") == 0) {
+                return JSArgTypedArray<uint8_t>(typed_array_data, element_count);
+            } else if (strcmp(name_cstr,"Uint16Array") == 0) {
+                return JSArgTypedArray<uint16_t>(typed_array_data, element_count);
+            } else if (strcmp(name_cstr, "Uint32Array") == 0) {
+                return JSArgTypedArray<uint32_t>(typed_array_data, element_count);
+            } else if (strcmp(name_cstr, "Int8Array") == 0) {
+                return JSArgTypedArray<int8_t>(typed_array_data, element_count);
+            } else if (strcmp(name_cstr, "Int16Array") == 0) {
+                return JSArgTypedArray<int16_t>(typed_array_data, element_count);
+            } else if (strcmp(name_cstr, "Int32Array") == 0) {
+                return JSArgTypedArray<int32_t>(typed_array_data, element_count);
+            } else if (strcmp(name_cstr, "Float32Array") == 0) {
+                return JSArgTypedArray<float>(typed_array_data, element_count);
+            } else if (strcmp(name_cstr, "BigUint64Array") == 0) {
+                return JSArgTypedArray<uint64_t>(typed_array_data, element_count);
+            } else if (strcmp(name_cstr, "BigInt64Array") == 0) {
+                return JSArgTypedArray<int64_t>(typed_array_data, element_count);
+            }
+
+        } else {
+            // Free typed_array_buffer Cause it aint 
+            JS_FreeValue(ctx, typed_array_buffer);
+        }
     }
 
     // Fallback: return [unsupported] as string
