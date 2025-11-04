@@ -171,8 +171,8 @@ ejr_register_module(ejr, module_name, methods, 1);
 ```
 
 The ejr (easyjs runtime) is built for embedding a JS runtime in easyjs related projects.
-It currently uses QuickJS as it's engine of sorts, but I'm not married to it. There are some issues with cross platform i.e. MSVC vs GNU.
-But for the time being it fits my use case.
+It currently uses QuickJS as it's engine of sorts, but I'm not married to it.
+But for the time being it fits my use case. Important 
 
 It's specifically a really easy way to embed JS into your application. Its only a few lines and for FFI there is currently only the rust (easyjsr) crate 
 avaiable as open source. But I've also implmeented the ejr library with the Kazoku application.
