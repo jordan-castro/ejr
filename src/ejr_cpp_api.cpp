@@ -441,10 +441,10 @@ JSValue EasyJSR::eval_script(const string &js_script, const string &file_name)
 JSValue EasyJSR::eval_module(const string &js_module, const string &file_name)
 {
     JSValue promise = this->eval(js_module, file_name, JS_EVAL_TYPE_MODULE);
-    JSValue promise_result = JS_PromiseResult(this->ctx, promise);
+    // JSValue promise_result = JS_PromiseResult(this->ctx, promise);
 
-    this->free_jsval(promise);
-    return promise_result;
+    // this->free_jsval(promise);
+    return promise;
 }
 
 void EasyJSR::free_jsval(JSValue value)
@@ -673,4 +673,9 @@ string EasyJSR::load_file(const string& file_path) {
 
 JSArg EasyJSR::jsvalue_to_jsarg(JSValue value, bool force_free) {
     return from_js(this->ctx, value, force_free);
+}
+
+JSValue EasyJSR::await_promise(JSValue value) {
+    JSValue promise_result = JS_PromiseResult(this->ctx, value);
+    return promise_result;
 }

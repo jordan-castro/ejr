@@ -292,11 +292,16 @@ namespace ejr
         /// @brief Wrap a JSValue in a EJRValue for RAII
         EJRValue wrap_js_val(JSValue val);
 
-        /// @brief register a callback (Runtime only)
+        /// @brief register a callback 
         void register_callback(const std::string &fn_name, DynCallback callback);
 
-        /// @brief register a module (Runtime only)
+        /// @brief register a module 
         void register_module(const std::string &module_name, const std::vector<JSMethod> &methods);
+
+        /// @brief Await a promise.
+        ///
+        /// Does not free the passed in value.
+        JSValue await_promise(JSValue value);
 
         // /// @brief register a CPP class (Runtime only).
         // template<typename T>

@@ -1067,4 +1067,15 @@ extern "C"
 
         handle->jsvad->free_value(handle->instance, value_id);
     }
+
+    int ejr_await_promise(EasyJSRHandle* handle, int value_id) {
+        if (handle == nullptr) {
+            return -1;
+        }
+
+        JSValue promise = handle->jsvad->get(value_id);
+        JSValue promise_result = handle->instance->await_promise(promise);
+
+        return handle->jsvad->add_value(promise_result);
+    }
 }

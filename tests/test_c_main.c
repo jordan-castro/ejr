@@ -22,6 +22,21 @@ JSArg* js_test_add(JSArg** args, size_t argc, void* opaque) {
     return jsarg_int(a + b);
 }
 
+JSArg* js_file_read(JSArg** args, size_t argc, void* opaque) {
+    const char* file_path = args[0]->value.str_val;
+    FILE *fptr;
+
+    fptr = fopen(file_path, "r");
+
+    char contents[100];
+
+    fgets(contents, 100, fptr);
+
+    fclose(fptr);
+    
+    return jsarg_str(contents);
+}
+
 char* file_loader(const char* file_path, void* opaque) {
     // Return "export function test() {return 1;}"
     char* result = "export function test() {return 1;}";
@@ -57,6 +72,22 @@ int main() {
 
     // Register callback to print
     ejr_register_callback(ejr, "print", js_print, NULL);
+    ejr_register_callback(ejr, "file_read", js_file_read, NULL);
+
+    JSMethod io_methods[1];
+    io_methods[0].name = "file_read";
+    io_methods[0].cb = js_file_read;
+    io_methods[0].opaque = NULL;
+    char* io_module_name = "ejr:io";
+    ejr_register_module(ejr, io_module_name, io_methods, 1);
+
+    char* test_script = " import 'ejr:io'; let contents = file_read('t.js'); print('contents are: ' + contents);";
+    int test_value = ejr_eval_module(ejr, test_script, "<test>");
+    int awaited_value = ejr_await_promise(ejr, test_value);
+
+    ejr_free_jsvalue(ejr, test_value);
+    ejr_free_jsvalue(ejr, awaited_value);
+
     // Register module with test
     JSMethod methods[1];
     methods[0].name = "add";
@@ -78,9 +109,20 @@ int main() {
     int module_value_2 = ejr_eval_module(ejr, module_script_2, module_file_2);
 
     ejr_free_jsvalue(ejr, module_value_2);
-
+ 
     // Free runtime
     ejr_free(ejr);
+
+    // Free strings
+    ejr_free_string(script);
+    ejr_free_string(file_name);
+    ejr_free_string(module_script);
+    ejr_free_string(module_file);
+    ejr_free_string(module_file_2);
+    ejr_free_string(module_script_2);
+    ejr_free_string(test_script);
+    ejr_free_string(value_string);
+    ejr_free_string(io_module_name);
 
     return 0;
 }

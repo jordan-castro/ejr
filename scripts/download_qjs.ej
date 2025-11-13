@@ -5,13 +5,9 @@
 // Download the correct files from https://github.com/bellard/quickjs
 // and place them in lib/
 
-macro jsimport(imports, module) {
-    javascript{
-        import #imports from #module
-    }
+javascript {
+    import "ejr:io";
 }
-
-@jsimport({ File }, "ejr:io")
 
 files = [
     // VM

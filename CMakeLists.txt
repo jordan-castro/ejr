@@ -55,8 +55,15 @@ if(UNIX)
 endif()
 
 # ------------------------------
-# 5. Test library
+# 5. Test c_repl
 # ------------------------------
 add_executable(libejr_test tests/test_c_repl.c)
 target_include_directories(libejr_test PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(libejr_test PRIVATE ejr)
+
+# ------------------------------
+# 6. Test c_main
+# ------------------------------
+add_executable(libejr_test_main tests/test_c_main.c)
+target_include_directories(libejr_test_main PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(libejr_test_main PRIVATE ejr)
