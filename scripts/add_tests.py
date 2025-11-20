@@ -13,7 +13,7 @@ test_skeleton = """
 pyfunction_skeleton = """
     def test_{name}(self):
         code = subprocess.call(["libejr_{name}"])
-        self.assertEqual(code, 1, "{name} failed")
+        self.assertEqual(code, 0, "{name} failed")
 
 """
 py_test = """
@@ -26,6 +26,7 @@ class Test(unittest.TestCase):
 {tests}
 
 if __name__ == "__main__":
+    subprocess.call(["py", "scripts/add_tests.py"])
     os.chdir("build/")
     unittest.main()
 """

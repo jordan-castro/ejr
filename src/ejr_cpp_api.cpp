@@ -441,14 +441,13 @@ JSValue EasyJSR::eval_script(const string &js_script, const string &file_name)
 JSValue EasyJSR::eval_module(const string &js_module, const string &file_name)
 {
     JSValue promise = this->eval(js_module, file_name, JS_EVAL_TYPE_MODULE);
-    // JSValue promise_result = JS_PromiseResult(this->ctx, promise);
 
-    // this->free_jsval(promise);
     return promise;
 }
 
 void EasyJSR::free_jsval(JSValue value)
 {
+    if (value.tag)
     // Check if value is a JS_Exception
     if (JS_IsException(value)) {
         // No need to free it, let QuickJS handle it.

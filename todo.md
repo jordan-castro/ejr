@@ -9,8 +9,8 @@
 
 - Finish Tests
 
-- Add async/await support via ejr_await_promise(handle_ptr, val_id)
-- Add error handling via ejr_catch_error():
+- ~~Add async/await support via ejr_await_promise(handle_ptr, val_id)~~
+- Add error handling via ejr_catch_error().
 - Add double -> Float64 array
 
 - Add optional script load to module:

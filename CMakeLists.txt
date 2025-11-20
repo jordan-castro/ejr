@@ -96,10 +96,18 @@ if (DEFINED ENV{EJR_TESTS})
 
 
     # ------------------------------
-    # 5. Test test_eval
+    # 5. Test test_eval_module
     # ------------------------------
-    add_executable(libejr_test_eval tests/test_eval.c)
-    target_include_directories(libejr_test_eval PRIVATE ${PROJECT_SOURCE_DIR}/include)
-    target_link_libraries(libejr_test_eval PRIVATE ejr)
+    add_executable(libejr_test_eval_module tests/test_eval_module.c)
+    target_include_directories(libejr_test_eval_module PRIVATE ${PROJECT_SOURCE_DIR}/include)
+    target_link_libraries(libejr_test_eval_module PRIVATE ejr)
+
+
+    # ------------------------------
+    # 5. Test test_eval_script
+    # ------------------------------
+    add_executable(libejr_test_eval_script tests/test_eval_script.c)
+    target_include_directories(libejr_test_eval_script PRIVATE ${PROJECT_SOURCE_DIR}/include)
+    target_link_libraries(libejr_test_eval_script PRIVATE ejr)
 
 endif()

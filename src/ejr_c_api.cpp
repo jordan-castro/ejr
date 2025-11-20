@@ -822,7 +822,17 @@ extern "C"
         // Call
         JSValue value = handle->instance->eval_module(js_str, file_name_str);
 
-        return handle->jsvad->add_value(value);
+        // Check if value is not a promise
+        if (JS_IsException(value)) {
+            return handle->jsvad->add_value(value);
+        }
+
+        JSValue promise_result = handle->instance->await_promise(value);
+
+        // Free value (We might not need this actually... becuase quickjs might free the value themselves.) 
+        handle->instance->free_jsval(value);
+
+        return handle->jsvad->add_value(promise_result);
     }
 
     int ejr_eval_function(EasyJSRHandle *handle, const char *fn_name, JSArg **args, size_t arg_count)
