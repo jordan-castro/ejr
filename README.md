@@ -1,6 +1,10 @@
 # ejr (Easyjs Runtime)
 The easyjs runtime written in c++, a wrapper on top of QuickJS.
 
+> [!IMPORTANT]
+> EJR is now deprecated in favor of using pixelscript.
+> Pixelscript can be found at [pixelscript](https://github.com/jordan-castro/pixelscript)
+
 This exposes easy high level methods:
 - Eval of scripts
 - Evaluating Scripts
