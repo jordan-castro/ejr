@@ -2,7 +2,8 @@
 The easyjs runtime written in c++, a wrapper on top of QuickJS.
 
 > [!IMPORTANT]
-> EJR is in the process of a major rewrite. Please keep in mind when using the api.
+> EJR has been deprecated. Use (pixelscript)[https://github.com/jordan-castro/pixelscript] instead.
+> If you want to embed easyjs as a scripting language, use the easyjs_ffi library.
 
 This exposes easy high level methods:
 - Eval of scripts
