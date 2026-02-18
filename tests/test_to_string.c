@@ -3,7 +3,7 @@
 #include <string.h>
 
 int main() {
-    JSArg* msg = jsarg_str("Test");
+    JSArg* msg = jsarg_int(1);
     char* response = jsarg_to_string(msg);
     if (response) {
         printf("%s\n", response);

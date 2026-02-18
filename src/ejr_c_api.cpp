@@ -1101,6 +1101,35 @@ extern "C"
         std::string str = "";
         
         switch(arg->type) {
+        case JSARG_TYPE_INT:
+            str = std::to_string(arg->value.int_val);
+            break;
+        case JSARG_TYPE_DOUBLE:
+            str = std::to_string(arg->value.double_val);
+            break;
+        case JSARG_TYPE_FLOAT:
+            str = std::to_string(arg->value.float_val);
+            break;
+        case JSARG_TYPE_BOOL:
+            str = std::to_string(arg->value.bool_val);
+            break;
+        case JSARG_TYPE_INT64_T:
+            str = std::to_string(arg->value.int64_t_val);
+            break;
+        case JSARG_TYPE_NULL:
+            str = "null";
+            break;
+        case JSARG_TYPE_UNDEFINED:
+            str = "undefined";
+            break;
+        case JSARG_TYPE_UINT32_T:
+            str = std::to_string(arg->value.uint32_t_val);
+            break;
+        case JSARG_TYPE_EXCEPTION:
+            str += std::string(arg->value.exception_val.name);
+            str += ",";
+            str += std::string(arg->value.exception_val.msg);
+            break;
         case JSARG_TYPE_STRING:
             str = std::string(arg->value.str_val);
             break;
