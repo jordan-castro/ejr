@@ -1111,68 +1111,100 @@ extern "C"
                 str += "[";
                 for (size_t i = 0; i < arg->value.c_array_val.count; ++i)
                 {
-                    jsarg_free(arg->value.c_array_val.items[i]);
+                    if (i > 0 && i < arg->value.c_array_val.count - 1) {
+                        str += ", ";
+                    }
+                    str += jsarg_to_string(arg->value.c_array_val.items[i]);
                 }
-                delete[] arg->value.c_array_val.items;
+                str += "]";
             }
             break;
         case JSARG_TYPE_UINT8_ARRAY:
             if (arg->value.u8_array_val.items)
             {
-                delete[] arg->value.u8_array_val.items;
+                str = ejr::bytes_to_string<uint8_t>(
+                    arg->value.u8_array_val.items,
+                    arg->value.u8_array_val.count
+                );
             }
             break;
         case JSARG_TYPE_INT32_ARRAY:
             if (arg->value.i32_array_val.items)
             {
-                delete[] arg->value.i32_array_val.items;
+                str = ejr::bytes_to_string<int32_t>(
+                    arg->value.i32_array_val.items,
+                    arg->value.i32_array_val.count
+                );
             }
             break;
         case JSARG_TYPE_UINT32_ARRAY:
             if (arg->value.u32_array_val.items)
             {
-                delete[] arg->value.u32_array_val.items;
+                str = ejr::bytes_to_string<uint32_t>(
+                    arg->value.u32_array_val.items,
+                    arg->value.u32_array_val.count
+                );
             }
             break;
         case JSARG_TYPE_INT64_ARRAY:
             if (arg->value.i64_array_val.items)
             {
-                delete[] arg->value.i64_array_val.items;
+                str = ejr::bytes_to_string<int64_t>(
+                    arg->value.i64_array_val.items,
+                    arg->value.i64_array_val.count
+                );
             }
             break;
         case JSARG_TYPE_INT8_ARRAY:
             if (arg->value.i8_array_val.items)
             {
-                delete[] arg->value.i8_array_val.items;
+                str = ejr::bytes_to_string<int8_t>(
+                    arg->value.i8_array_val.items,
+                    arg->value.i8_array_val.count
+                );
             }
             break;
         case JSARG_TYPE_UINT16_ARRAY:
             if (arg->value.u16_array_val.items)
             {
-                delete[] arg->value.u16_array_val.items;
+                str = ejr::bytes_to_string<uint16_t>(
+                    arg->value.u16_array_val.items,
+                    arg->value.u16_array_val.count
+                );
             }
             break;
         case JSARG_TYPE_INT16_ARRAY:
             if (arg->value.i16_array_val.items)
             {
-                delete[] arg->value.i16_array_val.items;
+                str = ejr::bytes_to_string<int16_t>(
+                    arg->value.i16_array_val.items,
+                    arg->value.i16_array_val.count
+                );
             }
             break;
         case JSARG_TYPE_UINT64_ARRAY:
             if (arg->value.u64_array_val.items)
             {
-                delete[] arg->value.u64_array_val.items;
+                str = ejr::bytes_to_string<uint64_t>(
+                    arg->value.u64_array_val.items,
+                    arg->value.u64_array_val.count
+                );
             }
             break;
         case JSARG_TYPE_FLOAT_ARRAY:
             if (arg->value.float_array_val.items)
             {
-                delete[] arg->value.float_array_val.items;
+                str = ejr::bytes_to_string<float>(
+                    arg->value.float_array_val.items,
+                    arg->value.float_array_val.count
+                );
             }
             break;
 
         default:
             break;
         }
+
+        return ejr::create_raw_string(str);
     }
 }
