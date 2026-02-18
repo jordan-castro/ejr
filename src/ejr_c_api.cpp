@@ -1093,4 +1093,86 @@ extern "C"
 
         return handle->jsvad->add_value(promise_result);
     }
+
+    char* jsarg_to_string(JSArg* arg) {
+        if (arg == nullptr) {
+            return nullptr;
+        }
+        std::string str = "";
+        
+        switch(arg->type) {
+        case JSARG_TYPE_STRING:
+            str = std::string(arg->value.str_val);
+            break;
+
+        case JSARG_TYPE_C_ARRAY:
+            if (arg->value.c_array_val.items)
+            {
+                str += "[";
+                for (size_t i = 0; i < arg->value.c_array_val.count; ++i)
+                {
+                    jsarg_free(arg->value.c_array_val.items[i]);
+                }
+                delete[] arg->value.c_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_UINT8_ARRAY:
+            if (arg->value.u8_array_val.items)
+            {
+                delete[] arg->value.u8_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_INT32_ARRAY:
+            if (arg->value.i32_array_val.items)
+            {
+                delete[] arg->value.i32_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_UINT32_ARRAY:
+            if (arg->value.u32_array_val.items)
+            {
+                delete[] arg->value.u32_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_INT64_ARRAY:
+            if (arg->value.i64_array_val.items)
+            {
+                delete[] arg->value.i64_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_INT8_ARRAY:
+            if (arg->value.i8_array_val.items)
+            {
+                delete[] arg->value.i8_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_UINT16_ARRAY:
+            if (arg->value.u16_array_val.items)
+            {
+                delete[] arg->value.u16_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_INT16_ARRAY:
+            if (arg->value.i16_array_val.items)
+            {
+                delete[] arg->value.i16_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_UINT64_ARRAY:
+            if (arg->value.u64_array_val.items)
+            {
+                delete[] arg->value.u64_array_val.items;
+            }
+            break;
+        case JSARG_TYPE_FLOAT_ARRAY:
+            if (arg->value.float_array_val.items)
+            {
+                delete[] arg->value.float_array_val.items;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
 }

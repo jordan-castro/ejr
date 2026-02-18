@@ -9,6 +9,11 @@
 extern "C" {
 #endif // __cplusplus
 
+// Version
+#define EJR_MAJOR 0
+#define EJR_MINOR 2
+#define EJR_PATCH 1
+
 // Types
 
 /**
