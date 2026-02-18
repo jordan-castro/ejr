@@ -1,11 +1,6 @@
 # TODO
 
-- Regestering C++ classes
-    - For now just doing callback first method.
-- Regestering custom classes
-    - For now just doing callback first method
 - add support for all JS Values
-- Potentially add import support in a repl? But node does not so it's prob fine...
 
 - Finish Tests
 
@@ -19,3 +14,5 @@
             - Look for ejr:io module specific functions (actual module)
             - call JS_EvalScript(ejr_instance->module_scripts[this_instance])
             - Reutrn actual module as usual
+
+- Remove ejr_cpp_api.cpp. It's not really needed. I can just have a c api.

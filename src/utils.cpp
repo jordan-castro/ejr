@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include <cstring>
 
 using namespace std;
 
@@ -92,5 +93,22 @@ namespace ejr
         tokens.push_back(s.substr(start));
 
         return tokens;
+    }
+
+    char* create_raw_string(const string& str) {
+        const char* data = str.c_str();
+        size_t len = strlen(data);
+        char* p = new char[len + 1];
+        if (p) {
+            strcpy(p, data);
+        }
+        return p;
+    }
+
+    char* create_raw_string(const char* str) {
+        if (str == nullptr) {
+            return nullptr;
+        }
+        return create_raw_string(string(str));
     }
 };

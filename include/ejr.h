@@ -46,6 +46,7 @@ typedef struct JSArg JSArg;
  * @brief C version of our JSArg union
  */
 struct JSArg {
+    // The argument type
     JSArgType type;
     union {
         int int_val;
@@ -540,6 +541,19 @@ void ejr_free_string(char* c_string);
  * @param value_id id of the value to free.
  */
 void ejr_free_jsvalue(EasyJSRHandle* handle, int value_id);
+
+/** 
+ * @brief Convert a JSArg into a String. This is not the same as val_to_string.
+ * The difference being that jsarg could be a value that never reaches the runtime. It's a 
+ * intermediate value.
+ * 
+ * But val_to_string uses a JSValue ID. Something that the runtime exclusively owns.
+ * 
+ * @param arg the JSArg to convert to string.
+ * 
+ * @return The string result or NULL.
+*/
+char* jsarg_to_string(JSArg* arg);
 
 #ifdef __cplusplus
 }

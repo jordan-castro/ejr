@@ -31,44 +31,11 @@ int main() {
         cout << "Could not load file: " << result.msg << endl;
     }
     try {
-    auto val = easyjsr->eval_script(result.result, "run.js");
-    cout << easyjsr->val_to_string(val) << endl;
+        auto val = easyjsr->eval_script(result.result, "run.js");
+        cout << easyjsr->val_to_string(val) << endl;
     } catch (const std::exception& e) {
         cout << e.what() << endl;
     }
-    // while (1) {
-    //     string input;
-    //     cout << ">> ";
-    //     getline(cin, input);
-    //     input = str_trim(input);
 
-    //     if (input == "q") {
-    //         break;
-    //     }
-
-    //     // Run JS and get as string
-    //     try {
-    //         auto val = easyjsr->eval_script(input, "repl.js");
-    //         cout << easyjsr->val_to_string(val) << endl;
-    //     } catch (const std::exception& e) {
-    //         cout << e.what() << endl;
-    //     }
-    // }
-
-    // cout << "So long, and thanks for all the fish!" << endl;
-
-    // TODO: Optionally Register C++ classes (This is for when you are using the library in a C++ project.)
-    // easyjsr->register_class<Person>("Person", {
-    //     {
-    //         "print_name", 
-    //         [](const vector<JSArg> args) -> JSArg {
-    //             cout << "Calling from print_name" << endl;
-    //             // Get ptr from first arg
-    //             auto p = get_obj_from_ptr<Person>(args[0]);
-    //             return p->print_name(args);
-    //         }
-    //     }
-    // });
-    // For all other projects use full callbacks. JS should not touch your C++ classes.
     return 0;
 }

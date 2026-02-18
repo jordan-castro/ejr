@@ -1,6 +1,11 @@
 #include <include/ejr.h>
 #include <include/ejr.hpp>
+#include "src/utils.hpp"
 #include <memory>
+#include <string>
+#include <cstdlib>
+#include <cstring>
+#include "ejr.h"
 
 struct JSValueAD
 {
