@@ -1140,7 +1140,7 @@ extern "C"
                 str += "[";
                 for (size_t i = 0; i < arg->value.c_array_val.count; ++i)
                 {
-                    if (i > 0 && i < arg->value.c_array_val.count - 1) {
+                    if (i > 0) {
                         str += ", ";
                     }
                     str += jsarg_to_string(arg->value.c_array_val.items[i]);
